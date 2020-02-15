@@ -1,0 +1,113 @@
+plugins {
+    id 'org.jetbrains.kotlin.js' version '1.3.61'
+    id 'org.jetbrains.kotlin.plugin.serialization' version '1.3.61'
+}
+
+apply plugin: 'kotlin-dce-js'
+
+group 'org.example'
+version '1.0'
+
+repositories {
+    mavenLocal()
+    maven { url = "https://dl.bintray.com/kotlin/kotlin-eap" }
+    maven { url = "https://dl.bintray.com/kotlin/kotlin-dev" }
+    mavenCentral()
+    jcenter()
+}
+
+kotlin {
+    target {
+        browser()
+    }
+
+    sourceSets {
+        main {
+            dependencies {
+                implementation "org.jetbrains.kotlin:kotlin-stdlib-js"
+                implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:1.3.3"
+                implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core-js:1.3.3"
+                implementation "org.jetbrains.kotlinx:kotlinx-serialization-runtime:0.14.0"
+                implementation "org.jetbrains.kotlinx:kotlinx-serialization-runtime-js:0.14.0"
+                implementation "io.akryl:akryl-core:0.+"
+                implementation "io.akryl:akryl-dom:0.+"
+
+                implementation npm("babel-loader", "8.0.6")
+                implementation npm("@babel/core", "7.7.7")
+                implementation npm("@babel/preset-env", "7.7.7")
+                implementation npm("babel-plugin-akryl", "0.1.1")
+                implementation npm("css-loader", "3.4.1")
+                implementation npm("style-loader", "1.1.2")
+                implementation npm("sass-loader", "8.0.0")
+                implementation npm("node-sass", "4.13.0")
+                implementation npm("react", "16.12.0")
+                implementation npm("react-dom", "16.12.0")
+            }
+        }
+    }
+}
+
+compileKotlinJs {
+    kotlinOptions {
+        freeCompilerArgs += "-Xuse-experimental=kotlin.experimental.ExperimentalTypeInference"
+    }
+
+    /*
+     * Copies compiled js file to new webpack entry point. The initial compiled file will be deleted
+     * and recreated on every build, and it will break webpack hot-reload. Copying ensures that
+     * webpack will not see an intermediate state when the file is absent.
+     */
+    doLast {
+        copy {
+            from "$buildDir/js/packages/${project.name}/kotlin"
+            into "$buildDir/js/entry/kotlin"
+        }
+    }
+}
+
+browserWebpack {
+    dependsOn(runDceKotlin)
+
+    /*
+    * Integrates `runDceKotlin` and `browserWebpack`.
+    * Overrides full libraries files with their minified versions.
+    */
+    doFirst {
+        // copy libraries
+        def srcDir = "$buildDir/kotlin-js-min/main"
+        fileTree(dir: srcDir, includes: ["*.js"]).visit { srcFile ->
+            def srcName = srcFile.name.take(srcFile.name.lastIndexOf('.'))
+            def destRoot = new File("$buildDir/js/packages_imported/$srcName")
+            if (destRoot.exists()) {
+                destRoot.eachDir { destDir ->
+                    def destDirName = "${destRoot.path}/${destDir.name}"
+                    copy {
+                        from srcDir
+                        include "${srcName}.js*"
+                        into destDirName
+                    }
+                }
+            }
+        }
+        // copy project files
+        copy {
+            from srcDir
+            include "${project.name}.js*"
+            into "$buildDir/js/packages/${project.name}/kotlin"
+        }
+        // copy resources: html, css, etc.
+        copy {
+            from "$rootDir/src/main/resources"
+            into "$buildDir/distributions"
+        }
+    }
+
+    /*
+     * Removes minified versions to trigger re-run of `compileKotlinJs` task in subsequent builds.
+     * Development mode will not work correctly without re-run of `compileKotlinJs` after production build.
+     */
+    doLast {
+        delete "$buildDir/js/packages/${project.name}/kotlin"
+        delete "$buildDir/js/packages_imported"
+    }
+}
