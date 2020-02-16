@@ -29,8 +29,11 @@ kotlin {
                 implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core-js:1.3.3"
                 implementation "org.jetbrains.kotlinx:kotlinx-serialization-runtime:0.14.0"
                 implementation "org.jetbrains.kotlinx:kotlinx-serialization-runtime-js:0.14.0"
+                implementation "org.jetbrains.kotlinx:kotlinx-collections-immutable:0.3"
+                implementation "org.jetbrains.kotlinx:kotlinx-collections-immutable-js:0.3"
                 implementation "io.akryl:akryl-core:0.+"
                 implementation "io.akryl:akryl-dom:0.+"
+                implementation "io.akryl:akryl-redux:0.+"
 
                 implementation npm("babel-loader", "8.0.6")
                 implementation npm("@babel/core", "7.7.7")
@@ -42,6 +45,8 @@ kotlin {
                 implementation npm("node-sass", "4.13.0")
                 implementation npm("react", "16.12.0")
                 implementation npm("react-dom", "16.12.0")
+                implementation npm("redux", "4.0.5")
+                implementation npm("react-redux", "7.1.3")
             }
         }
     }
