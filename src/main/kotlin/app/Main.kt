@@ -50,24 +50,24 @@ data class Point(
 )
 
 data class Joint(
+  val destInput: InputId,
   val sourceNode: NodeId,
-  val sourceOutput: OutputId,
-  val destInput: InputId
-)
+  val sourceOutput: OutputId
+) : Entity<InputId>
 
 data class Node(
   val id: NodeId,
   val type: NodeTypeId,
   val offset: Point,
-  val joints: PersistentMap<InputId, Joint>
-)
+  val joints: EntityMap<InputId, Joint>
+) : Entity<NodeId>
 
 data class NodeType(
   val id: NodeTypeId,
   val name: String,
-  val inputs: PersistentList<InputId>,
+  val inputs: PersistentSet<InputId>,
   val outputs: PersistentSet<OutputId>
-)
+) : Entity<NodeTypeId>
 
 data class Line(
   val x1: Double,
@@ -87,15 +87,15 @@ data class NodeMove(
 )
 
 data class Model(
-  val types: PersistentMap<NodeTypeId, NodeType>,
-  val nodes: PersistentMap<NodeId, Node>,
+  val types: EntityMap<NodeTypeId, NodeType>,
+  val nodes: EntityMap<NodeId, Node>,
   val lines: PersistentList<Line>,
   val move: NodeMove?
 )
 
 val unknownType = NodeType(
   id = NodeTypeId("unknown"),
-  inputs = persistentListOf(),
+  inputs = persistentSetOf(),
   outputs = persistentSetOf(),
   name = "<Unknown>"
 )
@@ -103,46 +103,46 @@ val unknownType = NodeType(
 val store = createStore<Model, Msg, Cmd>(
   init = Pair(
     Model(
-      types = persistentMapOf(
+      types = entityMapOf(
         // constants
-        NodeTypeId("const") to NodeType(
+        NodeType(
           id = NodeTypeId("const"),
           name = "Constant",
-          inputs = persistentListOf(),
+          inputs = persistentSetOf(),
           outputs = persistentSetOf(
             OutputId.All
           )
         ),
-        NodeTypeId("color") to NodeType(
+        NodeType(
           id = NodeTypeId("color"),
           name = "Color",
-          inputs = persistentListOf(),
+          inputs = persistentSetOf(),
           outputs = persistentSetOf(
             OutputId.All
           )
         ),
         // globals
-        NodeTypeId("time") to NodeType(
+        NodeType(
           id = NodeTypeId("time"),
           name = "Time",
-          inputs = persistentListOf(),
+          inputs = persistentSetOf(),
           outputs = persistentSetOf(
             OutputId.All
           )
         ),
-        NodeTypeId("result") to NodeType(
+        NodeType(
           id = NodeTypeId("result"),
           name = "Result",
-          inputs = persistentListOf(
+          inputs = persistentSetOf(
             InputId("Color")
           ),
           outputs = persistentSetOf()
         ),
         // operations
-        NodeTypeId("add") to NodeType(
+        NodeType(
           id = NodeTypeId("add"),
           name = "Add",
-          inputs = persistentListOf(
+          inputs = persistentSetOf(
             InputId("A"),
             InputId("B")
           ),
@@ -150,10 +150,10 @@ val store = createStore<Model, Msg, Cmd>(
             OutputId.All
           )
         ),
-        NodeTypeId("sub") to NodeType(
+        NodeType(
           id = NodeTypeId("sub"),
           name = "Subtract",
-          inputs = persistentListOf(
+          inputs = persistentSetOf(
             InputId("A"),
             InputId("B")
           ),
@@ -161,10 +161,10 @@ val store = createStore<Model, Msg, Cmd>(
             OutputId.All
           )
         ),
-        NodeTypeId("mul") to NodeType(
+        NodeType(
           id = NodeTypeId("mul"),
           name = "Multiply",
-          inputs = persistentListOf(
+          inputs = persistentSetOf(
             InputId("A"),
             InputId("B")
           ),
@@ -173,10 +173,10 @@ val store = createStore<Model, Msg, Cmd>(
           )
         ),
         // trigonometry
-        NodeTypeId("sin") to NodeType(
+        NodeType(
           id = NodeTypeId("sin"),
           name = "Sin",
-          inputs = persistentListOf(
+          inputs = persistentSetOf(
             InputId("X")
           ),
           outputs = persistentSetOf(
@@ -184,163 +184,163 @@ val store = createStore<Model, Msg, Cmd>(
           )
         )
       ),
-      nodes = persistentMapOf(
-        NodeId("1") to Node(
+      nodes = entityMapOf(
+        Node(
           id = NodeId("1"),
           type = NodeTypeId("color"),
           offset = Point(600.0, 0.0),
-          joints = persistentMapOf()
+          joints = entityMapOf()
         ),
-        NodeId("3") to Node(
+        Node(
           id = NodeId("3"),
           type = NodeTypeId("time"),
           offset = Point(0.0, 200.0),
-          joints = persistentMapOf()
+          joints = entityMapOf()
         ),
-        NodeId("4") to Node(
+        Node(
           id = NodeId("4"),
           type = NodeTypeId("sin"),
           offset = Point(200.0, 200.0),
-          joints = persistentMapOf(
-            InputId("X") to Joint(
+          joints = entityMapOf(
+            Joint(
               sourceNode = NodeId("3"),
               sourceOutput = OutputId.All,
               destInput = InputId("X")
             )
           )
         ),
-        NodeId("5") to Node(
+        Node(
           id = NodeId("5"),
           type = NodeTypeId("const"),
           offset = Point(200.0, 300.0),
-          joints = persistentMapOf()
+          joints = entityMapOf()
         ),
-        NodeId("6") to Node(
+        Node(
           id = NodeId("6"),
           type = NodeTypeId("mul"),
           offset = Point(400.0, 200.0),
-          joints = persistentMapOf(
-            InputId("A") to Joint(
+          joints = entityMapOf(
+            Joint(
               sourceNode = NodeId("4"),
               sourceOutput = OutputId.All,
               destInput = InputId("A")
             ),
-            InputId("B") to Joint(
+            Joint(
               sourceNode = NodeId("5"),
               sourceOutput = OutputId.All,
               destInput = InputId("B")
             )
           )
         ),
-        NodeId("7") to Node(
+        Node(
           id = NodeId("7"),
           type = NodeTypeId("const"),
           offset = Point(400.0, 300.0),
-          joints = persistentMapOf()
+          joints = entityMapOf()
         ),
-        NodeId("8") to Node(
+        Node(
           id = NodeId("8"),
           type = NodeTypeId("add"),
           offset = Point(600.0, 200.0),
-          joints = persistentMapOf(
-            InputId("A") to Joint(
+          joints = entityMapOf(
+            Joint(
               sourceNode = NodeId("6"),
               sourceOutput = OutputId.All,
               destInput = InputId("A")
             ),
-            InputId("B") to Joint(
+            Joint(
               sourceNode = NodeId("7"),
               sourceOutput = OutputId.All,
               destInput = InputId("B")
             )
           )
         ),
-        NodeId("9") to Node(
+        Node(
           id = NodeId("9"),
           type = NodeTypeId("mul"),
           offset = Point(800.0, 0.0),
-          joints = persistentMapOf(
-            InputId("A") to Joint(
+          joints = entityMapOf(
+            Joint(
               sourceNode = NodeId("1"),
               sourceOutput = OutputId.All,
               destInput = InputId("A")
             ),
-            InputId("B") to Joint(
+            Joint(
               sourceNode = NodeId("8"),
               sourceOutput = OutputId.All,
               destInput = InputId("B")
             )
           )
         ),
-        NodeId("2") to Node(
+        Node(
           id = NodeId("2"),
           type = NodeTypeId("color"),
           offset = Point(800.0, 400.0),
-          joints = persistentMapOf()
+          joints = entityMapOf()
         ),
-        NodeId("10") to Node(
+        Node(
           id = NodeId("10"),
           type = NodeTypeId("const"),
           offset = Point(600.0, 400.0),
-          joints = persistentMapOf()
+          joints = entityMapOf()
         ),
-        NodeId("11") to Node(
+        Node(
           id = NodeId("11"),
           type = NodeTypeId("sub"),
           offset = Point(800.0, 200.0),
-          joints = persistentMapOf(
-            InputId("A") to Joint(
+          joints = entityMapOf(
+            Joint(
               sourceNode = NodeId("8"),
               sourceOutput = OutputId.All,
               destInput = InputId("A")
             ),
-            InputId("B") to Joint(
+            Joint(
               sourceNode = NodeId("10"),
               sourceOutput = OutputId.All,
               destInput = InputId("B")
             )
           )
         ),
-        NodeId("12") to Node(
+        Node(
           id = NodeId("12"),
           type = NodeTypeId("mul"),
           offset = Point(1000.0, 200.0),
-          joints = persistentMapOf(
-            InputId("A") to Joint(
+          joints = entityMapOf(
+            Joint(
               sourceNode = NodeId("11"),
               sourceOutput = OutputId.All,
               destInput = InputId("A")
             ),
-            InputId("B") to Joint(
+            Joint(
               sourceNode = NodeId("2"),
               sourceOutput = OutputId.All,
               destInput = InputId("B")
             )
           )
         ),
-        NodeId("13") to Node(
+        Node(
           id = NodeId("13"),
           type = NodeTypeId("add"),
           offset = Point(1200.0, 100.0),
-          joints = persistentMapOf(
-            InputId("A") to Joint(
+          joints = entityMapOf(
+            Joint(
               sourceNode = NodeId("9"),
               sourceOutput = OutputId.All,
               destInput = InputId("A")
             ),
-            InputId("B") to Joint(
+            Joint(
               sourceNode = NodeId("12"),
               sourceOutput = OutputId.All,
               destInput = InputId("B")
             )
           )
         ),
-        NodeId("14") to Node(
+        Node(
           id = NodeId("14"),
           type = NodeTypeId("result"),
           offset = Point(1400.0, 100.0),
-          joints = persistentMapOf(
-            InputId("Color") to Joint(
+          joints = entityMapOf(
+            Joint(
               sourceNode = NodeId("13"),
               sourceOutput = OutputId.All,
               destInput = InputId("Color")
@@ -391,7 +391,7 @@ private fun doMove(model: Model, msg: Msg.DoMove): Pair<Model, Nothing?> {
   val node = model.nodes[move.id] ?: return Pair(model, null)
   val newOffset = Point(node.offset.x + dx, node.offset.y + dy)
   val newNode = node.copy(offset = newOffset)
-  val newNodes = model.nodes.put(newNode.id, newNode)
+  val newNodes = model.nodes.put(newNode)
 
   val newMove = move.copy(x = msg.x, y = msg.y)
 
@@ -572,7 +572,7 @@ fun viewport() = component {
   )
 }
 
-fun ComponentScope.useBuildLines(nodes: PersistentMap<NodeId, Node>) {
+fun ComponentScope.useBuildLines(nodes: EntityMap<NodeId, Node>) {
   val dispatch = useDispatch<Msg>()
 
   useEffect(listOf(nodes)) {
