@@ -11,9 +11,11 @@ val store by lazy {
       Model(
         types = NODE_TYPES,
         nodes = INITIAL_NODES,
+        joints = INITIAL_JOINTS,
         lines = persistentListOf(),
         move = null,
-        compiled = compile(NODE_TYPES, INITIAL_NODES).orElse { null }
+        compiled = compile(NODE_TYPES, INITIAL_NODES, INITIAL_JOINTS).orElse { null },
+        selection = null
       ),
       null
     ),
@@ -31,6 +33,7 @@ private fun update(model: Model, msg: Msg): Pair<Model, Cmd?> {
     is Msg.StopMove -> stopMove(model)
     is Msg.DoMove -> doMove(model, msg)
     is Msg.PutNodeParam -> putNodeParam(model, msg)
+    is Msg.SelectJoint -> selectJoint(model, msg)
   }
 }
 
@@ -80,7 +83,7 @@ private fun doMove(model: Model, msg: Msg.DoMove): Pair<Model, Nothing?> {
 private fun triggerCompile(model: Model): Pair<Model, Cmd?> {
   // todo async compile
   val newModel = model.copy(
-    compiled = compile(model.types, model.nodes).orElse { err ->
+    compiled = compile(model.types, model.nodes, model.joints).orElse { err ->
       console.error(err)
       model.compiled
     }
@@ -98,4 +101,11 @@ private fun putNodeParam(model: Model, msg: Msg.PutNodeParam): Pair<Model, Cmd?>
     )
   )
   return triggerCompile(newModel)
+}
+
+private fun selectJoint(model: Model, msg: Msg.SelectJoint): Pair<Model, Cmd?> {
+  return Pair(
+    model.copy(selection = Selection.Joint(msg.joint)),
+    null
+  )
 }

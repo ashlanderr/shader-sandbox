@@ -29,7 +29,8 @@ private data class OverloadResult(
 
 fun compile(
   types: EntityMap<NodeTypeId, NodeType>,
-  nodes: EntityMap<NodeId, Node>
+  nodes: EntityMap<NodeId, Node>,
+  joints: EntityMap<Pair<NodeId, InputId>, Joint>
 ): Result<List<CompilerError>, CompiledShader> {
   val result = nodes[RESULT_NODE_ID]
     ?: return Err(listOf(CompilerError(RESULT_NODE_ID, "Result node not found")))
@@ -37,20 +38,20 @@ fun compile(
   if (result.type != RESULT_TYPE_ID)
     return Err(listOf(CompilerError(RESULT_NODE_ID, "Result node has wrong type")))
 
-  val colorJoint = result.joints[RESULT_INPUT_COLOR]
+  val colorJoint = joints[Pair(RESULT_NODE_ID, RESULT_INPUT_COLOR)]
     ?: return Err(listOf(CompilerError(RESULT_NODE_ID, "Result 'Color' input is not connected")))
 
-  val compiled = compileNode(colorJoint.sourceNode, types, nodes)
+  val compiled = compileNode(colorJoint.source.first, types, nodes, joints)
   return compileToString(compiled, colorJoint)
 }
 
 private fun compileToString(compiled: CompiledCache, color: Joint): Result<List<CompilerError>, CompiledShader> {
-  val outputNode = compiled[color.sourceNode]
+  val outputNode = compiled[color.source.first]
     ?: return Err(listOf(CompilerError(RESULT_NODE_ID, "Color output not found")))
 
   when (outputNode) {
     is Ok -> {
-      val output = outputNode.value.output[color.sourceOutput]
+      val output = outputNode.value.output[color.source.second]
         ?: return Err(listOf(CompilerError(RESULT_NODE_ID, "Color output not found")))
 
       val resultLine = when (output.type) {
@@ -90,6 +91,7 @@ private fun compileNode(
   nodeId: NodeId,
   types: EntityMap<NodeTypeId, NodeType>,
   nodes: EntityMap<NodeId, Node>,
+  joints: EntityMap<Pair<NodeId, InputId>, Joint>,
   stack: PersistentList<NodeId> = persistentListOf(),
   compiled: CompiledCache = persistentMapOf()
 ): CompiledCache {
@@ -116,12 +118,16 @@ private fun compileNode(
 
   val newStack = stack.add(nodeId)
 
-  val newCompiled = node.joints.fold(compiled) { acc, joint ->
-    compileNode(joint.value.sourceNode, types, nodes, newStack, acc)
+  val nodeJoints = joints
+    .filter { it.key.first == nodeId }
+    .associate { Pair(it.key.second, it.value) }
+
+  val newCompiled = nodeJoints.values.fold(compiled) { acc, joint ->
+    compileNode(joint.source.first, types, nodes, joints, newStack, acc)
   }
 
   val inputsResult = type.inputs
-    .map { findInput(newCompiled, node, it) }
+    .map { findInput(newCompiled, nodeJoints, node, it) }
     .flatten()
     .mapError { it.flatten() }
 
@@ -167,15 +173,20 @@ private fun compileNode(
   return newCompiled.put(nodeId, result)
 }
 
-private fun findInput(compiled: CompiledCache, node: Node, input: InputId): Result<List<CompilerError>, Pair<String, OutputDesc>> {
-  val joint = node.joints[input]
+private fun findInput(
+  compiled: CompiledCache,
+  joints: Map<InputId, Joint>,
+  node: Node,
+  input: InputId
+): Result<List<CompilerError>, Pair<String, OutputDesc>> {
+  val joint = joints[input]
     ?: return Err(listOf(CompilerError(node.id, "Input '$input' not connected")))
 
-  val sourceNode = compiled[joint.sourceNode]
+  val sourceNode = compiled[joint.source.first]
     ?: return Err(listOf(CompilerError(node.id, "Node for input '$input' not found")))
 
   return sourceNode
-    .map { it.output[joint.sourceOutput] }
+    .map { it.output[joint.source.second] }
     .flatMap { if (it == null) Err(emptyList<CompilerError>()) else Ok(it) }
     .map { Pair("#input${input.value}", it) }
     .mapError { emptyList<CompilerError>() }

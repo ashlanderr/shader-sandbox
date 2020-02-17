@@ -13,6 +13,7 @@ sealed class Msg {
   object StopMove : Msg()
 
   class PutNodeParam(val node: NodeId, val param: ParamId, val value: DataValue) : Msg()
+  class SelectJoint(val joint: Joint) : Msg()
 }
 
 data class NodeTypeId(val value: String) {
@@ -65,17 +66,15 @@ data class Point(
 )
 
 data class Joint(
-  val destInput: InputId,
-  val sourceNode: NodeId,
-  val sourceOutput: OutputId
-) : Entity<InputId>
+  val dest: Pair<NodeId, InputId>,
+  val source: Pair<NodeId, OutputId>
+) : Entity<Pair<NodeId, InputId>>
 
 data class Node(
   val id: NodeId,
   val type: NodeTypeId,
   val offset: Point,
-  val params: PersistentMap<ParamId, DataValue>,
-  val joints: EntityMap<InputId, Joint>
+  val params: PersistentMap<ParamId, DataValue>
 ) : Entity<NodeId>
 
 data class ParamType(
@@ -94,6 +93,7 @@ data class NodeType(
 ) : Entity<NodeTypeId>
 
 data class Line(
+  val joint: Joint,
   val x1: Double,
   val y1: Double,
   val x2: Double,
@@ -110,10 +110,16 @@ data class NodeMove(
   val y: Int
 )
 
+sealed class Selection {
+  data class Joint(val value: app.Joint) : Selection()
+}
+
 data class Model(
   val types: EntityMap<NodeTypeId, NodeType>,
   val nodes: EntityMap<NodeId, Node>,
+  val joints: EntityMap<Pair<NodeId, InputId>, Joint>,
   val lines: PersistentList<Line>,
   val move: NodeMove?,
-  val compiled: CompiledShader?
+  val compiled: CompiledShader?,
+  val selection: Selection?
 )

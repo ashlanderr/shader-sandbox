@@ -2,6 +2,7 @@ package app
 
 import io.akryl.ComponentScope
 import io.akryl.component
+import io.akryl.dom.css.invoke
 import io.akryl.dom.css.properties.*
 import io.akryl.dom.html.Div
 import io.akryl.dom.html.Path
@@ -12,6 +13,7 @@ import io.akryl.useEffect
 import kotlinx.collections.immutable.persistentSetOf
 import kotlinx.collections.immutable.toPersistentList
 import org.w3c.dom.HTMLElement
+import react.ReactElement
 import kotlin.browser.document
 import kotlin.math.max
 
@@ -28,7 +30,7 @@ private val unknownType = NodeType(
 fun viewport() = component {
   val model = useSelector<Model>()
   val dispatch = useDispatch<Msg>()
-  useBuildLines(model.nodes)
+  useBuildLines(model)
 
   Div(
     id = "viewport",
@@ -41,16 +43,7 @@ fun viewport() = component {
       overflow.hidden()
     ),
     child = Div(
-      Svg(
-        css = listOf(
-          position.absolute(),
-          left(0.px),
-          top(0.px),
-          width(100.pct),
-          height(100.pct)
-        ),
-        children = model.lines.map { line(it) }
-      ),
+      lines(model),
       Div(
         css = listOf(
           position.absolute(),
@@ -64,6 +57,21 @@ fun viewport() = component {
       if (model.move != null)
         dispatch(Msg.DoMove(it.clientX, it.clientY))
     }
+  )
+}
+
+private fun lines(model: Model): ReactElement<*> {
+  val selection = model.selection as? Selection.Joint
+
+  return Svg(
+    css = listOf(
+      position.absolute(),
+      left(0.px),
+      top(0.px),
+      width(100.pct),
+      height(100.pct)
+    ),
+    children = model.lines.map { line(selection?.value == it.joint, it) }
   )
 }
 
@@ -83,6 +91,7 @@ private fun input(node: NodeId, input: InputId) = component {
           height(8.px),
           borderRadius(100.pct),
           backgroundColor(0xFFFFFF),
+          marginLeft(-8.px),
           marginRight(4.px)
         )
       ),
@@ -114,7 +123,8 @@ private fun output(node: NodeId, output: OutputId) = component {
           height(8.px),
           borderRadius(100.pct),
           backgroundColor(color),
-          marginLeft(16.px)
+          marginLeft(16.px),
+          marginRight(-8.px)
         )
       )
     )
@@ -189,45 +199,50 @@ private fun nodeBody(type: NodeType, node: Node) = component {
   )
 }
 
-private fun line(line: Line) = component {
+private fun line(selected: Boolean, line: Line) = component {
+  val dispatch = useDispatch<Msg>()
+
   Path(
     css = listOf(
-      stroke("white"),
+      cursor.pointer(),
+      stroke(if (selected) "#00fffc" else "#ffffff"),
       strokeWidth("2"),
-      fill("transparent")
+      fill("transparent"),
+      hover(
+        strokeWidth("4")
+      )
     ),
-    d = "M${line.x1} ${line.y1} C${line.x2} ${line.y2}, ${line.x3} ${line.y3}, ${line.x4} ${line.y4}"
+    d = "M${line.x1} ${line.y1} C${line.x2} ${line.y2}, ${line.x3} ${line.y3}, ${line.x4} ${line.y4}",
+    onClick = { dispatch(Msg.SelectJoint(line.joint)) }
   )
 }
 
-private fun ComponentScope.useBuildLines(nodes: EntityMap<NodeId, Node>) {
+private fun ComponentScope.useBuildLines(model: Model) {
   val dispatch = useDispatch<Msg>()
 
-  useEffect(listOf(nodes)) {
+  useEffect(listOf(model.nodes, model.joints)) {
     val lines = ArrayList<Line>()
 
     val viewport = document.getElementById("viewport") as? HTMLElement ?: return@useEffect
     val viewportBox = viewport.getBoundingClientRect()
 
-    for ((_, node) in nodes) {
-      for ((_, joint) in node.joints) {
-        val inputId = "node-${node.id}-input-${joint.destInput}"
-        val outputId = "node-${joint.sourceNode}-output-${joint.sourceOutput}"
-        val input = document.getElementById(inputId) as? HTMLElement ?: continue
-        val output = document.getElementById(outputId) as? HTMLElement ?: continue
-        val inputBox = input.getBoundingClientRect()
-        val outputBox = output.getBoundingClientRect()
+    for ((_, joint) in model.joints) {
+      val inputId = "node-${joint.dest.first}-input-${joint.dest.second}"
+      val outputId = "node-${joint.source.first}-output-${joint.source.second}"
+      val input = document.getElementById(inputId) as? HTMLElement ?: continue
+      val output = document.getElementById(outputId) as? HTMLElement ?: continue
+      val inputBox = input.getBoundingClientRect()
+      val outputBox = output.getBoundingClientRect()
 
-        val x1 = outputBox.left - viewportBox.left + outputBox.width / 2
-        val y1 = outputBox.top - viewportBox.top + outputBox.height / 2
-        val x4 = inputBox.left - viewportBox.left + inputBox.width / 2
-        val y4 = inputBox.top - viewportBox.top + inputBox.height / 2
-        val w = max(x4 - x1, 200.0)
-        val x2 = x1 + w / 2
-        val x3 = x4 - w / 2
+      val x1 = outputBox.left - viewportBox.left + outputBox.width / 2
+      val y1 = outputBox.top - viewportBox.top + outputBox.height / 2
+      val x4 = inputBox.left - viewportBox.left + inputBox.width / 2
+      val y4 = inputBox.top - viewportBox.top + inputBox.height / 2
+      val w = max(x4 - x1, 50.0)
+      val x2 = x1 + w / 2
+      val x3 = x4 - w / 2
 
-        lines.add(Line(x1, y1, x2, y1, x3, y4, x4, y4))
-      }
+      lines.add(Line(joint, x1, y1, x2, y1, x3, y4, x4, y4))
     }
 
     dispatch(Msg.SetLines(lines.toPersistentList()))
