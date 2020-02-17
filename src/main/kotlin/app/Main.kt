@@ -413,10 +413,14 @@ fun viewport() = component {
   useBuildLines(model.nodes)
 
   Div(
+    id = "viewport",
     css = listOf(
+      flex(1, 1, 100.pct),
       width(100.pct),
       height(100.pct),
-      backgroundColor(0x252525)
+      backgroundColor(0x252525),
+      position.relative(),
+      overflow.hidden()
     ),
     child = Div(
       Svg(
@@ -451,6 +455,9 @@ fun ComponentScope.useBuildLines(nodes: EntityMap<NodeId, Node>) {
   useEffect(listOf(nodes)) {
     val lines = ArrayList<Line>()
 
+    val viewport = document.getElementById("viewport") as? HTMLElement ?: return@useEffect
+    val viewportBox = viewport.getBoundingClientRect()
+
     for ((_, node) in nodes) {
       for ((_, joint) in node.joints) {
         val inputId = "node-${node.id}-input-${joint.destInput}"
@@ -460,10 +467,10 @@ fun ComponentScope.useBuildLines(nodes: EntityMap<NodeId, Node>) {
         val inputBox = input.getBoundingClientRect()
         val outputBox = output.getBoundingClientRect()
 
-        val x1 = outputBox.left + outputBox.width / 2
-        val y1 = outputBox.top + outputBox.height / 2
-        val x4 = inputBox.left + inputBox.width / 2
-        val y4 = inputBox.top + inputBox.height / 2
+        val x1 = outputBox.left - viewportBox.left + outputBox.width / 2
+        val y1 = outputBox.top - viewportBox.top + outputBox.height / 2
+        val x4 = inputBox.left - viewportBox.left + inputBox.width / 2
+        val y4 = inputBox.top - viewportBox.top + inputBox.height / 2
         val w = max(x4 - x1, 200.0)
         val x2 = x1 + w / 2
         val x3 = x4 - w / 2
@@ -476,10 +483,33 @@ fun ComponentScope.useBuildLines(nodes: EntityMap<NodeId, Node>) {
   }
 }
 
+fun sidePanel() = component {
+  Div(
+    css = listOf(
+      flex(0, 0, 512.px),
+      height(100.pct),
+      backgroundColor(0xBBBBBB)
+    ),
+    children = listOf(
+      mainPreview()
+    )
+  )
+}
+
 fun app() = component {
   store.provider(
     children = listOf(
-      viewport()
+      Div(
+        css = listOf(
+          width(100.pct),
+          height(100.pct),
+          display.flex()
+        ),
+        children = listOf(
+          sidePanel(),
+          viewport()
+        )
+      )
     )
   )
 }
