@@ -25,6 +25,7 @@ val NODE_TYPES = entityMapOf(
     outputs = persistentSetOf(
       OutputId.All
     ),
+    uniforms = emptySet(),
     code = mapOf(
       listOf(Scalar) to listOf("float $NODE_RESULT_VAR = #paramValue;")
     )
@@ -42,6 +43,7 @@ val NODE_TYPES = entityMapOf(
     outputs = persistentSetOf(
       OutputId.All
     ),
+    uniforms = emptySet(),
     code = mapOf(
       listOf(Color) to listOf("vec4 $NODE_RESULT_VAR = #paramValue;")
     )
@@ -55,6 +57,9 @@ val NODE_TYPES = entityMapOf(
     outputs = persistentSetOf(
       OutputId.All
     ),
+    uniforms = setOf(
+      "uniform float time;"
+    ),
     code = mapOf(
       listOf(Scalar) to listOf("float $NODE_RESULT_VAR = time;")
     )
@@ -67,6 +72,7 @@ val NODE_TYPES = entityMapOf(
       RESULT_INPUT_COLOR
     ),
     outputs = persistentSetOf(),
+    uniforms = emptySet(),
     code = emptyMap()
   ),
   // operations
@@ -81,6 +87,7 @@ val NODE_TYPES = entityMapOf(
     outputs = persistentSetOf(
       OutputId.All
     ),
+    uniforms = emptySet(),
     code = mapOf(
       listOf(Scalar, Scalar, Scalar) to listOf("float $NODE_RESULT_VAR = #inputA + #inputB;"),
       listOf(Scalar, Color, Color) to listOf("vec4 $NODE_RESULT_VAR = #inputA + #inputB;"),
@@ -99,6 +106,7 @@ val NODE_TYPES = entityMapOf(
     outputs = persistentSetOf(
       OutputId.All
     ),
+    uniforms = emptySet(),
     code = mapOf(
       listOf(Scalar, Scalar, Scalar) to listOf("float $NODE_RESULT_VAR = #inputA - #inputB;"),
       listOf(Scalar, Color, Color) to listOf("vec4 $NODE_RESULT_VAR = #inputA - #inputB;"),
@@ -117,6 +125,7 @@ val NODE_TYPES = entityMapOf(
     outputs = persistentSetOf(
       OutputId.All
     ),
+    uniforms = emptySet(),
     code = mapOf(
       listOf(Scalar, Scalar, Scalar) to listOf("float $NODE_RESULT_VAR = #inputA * #inputB;"),
       listOf(Scalar, Color, Color) to listOf("vec4 $NODE_RESULT_VAR = #inputA * #inputB;"),
@@ -135,6 +144,7 @@ val NODE_TYPES = entityMapOf(
     outputs = persistentSetOf(
       OutputId.All
     ),
+    uniforms = emptySet(),
     code = mapOf(
       listOf(Scalar, Scalar) to listOf("float $NODE_RESULT_VAR = sin(#inputX);")
     )

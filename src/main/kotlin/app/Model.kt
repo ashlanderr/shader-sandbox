@@ -87,7 +87,8 @@ data class NodeType(
   val params: EntityMap<ParamId, ParamType>,
   val inputs: PersistentSet<InputId>,
   val outputs: PersistentSet<OutputId>,
-  val code: Map<List<DataType>, List<String>>
+  val code: Map<List<DataType>, List<String>>,
+  val uniforms: Set<String>
 ) : Entity<NodeTypeId>
 
 data class Line(

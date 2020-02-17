@@ -38,6 +38,6 @@ external interface WebGLRenderingContext {
   fun getShaderInfoLog(shader: Int): String
   fun deleteBuffer(buffer: Int)
   fun deleteProgram(program: Int)
-  fun getUniformLocation(program: Int, uniform: String): Int
+  fun getUniformLocation(program: Int, uniform: String): Int?
   fun uniform1f(uniform: Int, value: Float)
 }

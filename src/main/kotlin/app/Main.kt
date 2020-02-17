@@ -24,6 +24,7 @@ val unknownType = NodeType(
   params = entityMapOf(),
   inputs = persistentSetOf(),
   outputs = persistentSetOf(),
+  uniforms = emptySet(),
   code = emptyMap()
 )
 
@@ -520,22 +521,7 @@ fun main() {
   println(result)
 
   if (result is Ok) {
-    val fullShader = """
-      |#ifdef GL_ES
-      |precision mediump float;
-      |#endif
-      |
-      |#extension GL_OES_standard_derivatives : enable
-      |
-      |uniform float time;
-      |uniform vec2 mouse;
-      |uniform vec2 resolution;
-      |
-      |void main( void ) {
-      |  ${result.value.lines.joinToString("\n  ")}
-      |}
-    """.trimMargin()
-    println(fullShader)
+    println(result.value.lines.joinToString("\n"))
   }
 
   ReactDom.render(app(), document.getElementById("app"))

@@ -16,7 +16,8 @@ private typealias CompiledCache = PersistentMap<NodeId, CompiledResult>
 private typealias CompiledResult = Result<List<CompilerError>, CompiledNode>
 
 private data class CompiledNode(
-  val lines: List<String>,
+  val uniforms: Set<String>,
+  val code: List<String>,
   val output: PersistentMap<OutputId, OutputDesc>
 )
 
@@ -56,10 +57,24 @@ private fun compileToString(compiled: CompiledCache, color: Joint): Result<List<
         DataType.Scalar -> "gl_FragColor = vec4(${output.variable});"
         DataType.Color -> "gl_FragColor = ${output.variable};"
       }
-      val lines = compiled.values
-        .flatMap { if (it is Ok) it.value.lines else persistentListOf() }
 
-      return Ok(CompiledShader(lines + resultLine))
+      val successfullyCompiled = compiled.values
+        .filterIsInstance<Ok<CompiledNode>>()
+        .map { it.value }
+
+      val uniforms = successfullyCompiled.flatMapTo(HashSet()) { it.uniforms }
+      val code = successfullyCompiled.flatMap { it.code } + resultLine
+
+      val lines = listOf(
+        "#version 100",
+        "precision mediump float;",
+        *uniforms.toTypedArray(),
+        "void main( void ) {",
+        *code.map { "  $it" }.toTypedArray(),
+        "}"
+      )
+
+      return Ok(CompiledShader(lines))
     }
 
     is Err -> {
@@ -130,7 +145,7 @@ private fun compileNode(
 
   val result = paramsResult.map { (code, inputs, outputType) ->
     val replaces = inputs + Pair("#node", "node${node.id}")
-    val lines = replaces.fold(code) { acc, input ->
+    val codeReplaced = replaces.fold(code) { acc, input ->
       acc.map { line ->
         line.replace(input.first, input.second)
       }
@@ -142,7 +157,11 @@ private fun compileNode(
         type = outputType
       )
     )
-    CompiledNode(lines, output)
+    CompiledNode(
+      uniforms = type.uniforms,
+      code = codeReplaced,
+      output = output
+    )
   }
 
   return newCompiled.put(nodeId, result)

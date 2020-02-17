@@ -23,11 +23,9 @@ void main() {
 private const val FRAGMENT_SHADER = """
 #version 100
 precision mediump float;
-
 uniform float time;
-
 void main( void ) {
-  vec4 node1_result = vec4(1, 0, 0, 1);
+  vec4 node1_result = vec4(0, 0, 1, 1);
   float node3_result = time;
   float node4_result = sin(node3_result);
   float node5_result = float(0.5);
@@ -44,13 +42,43 @@ void main( void ) {
 }
 """
 
+private interface UniformState {
+  interface Factory {
+    fun find(gl: WebGLRenderingContext, program: Int): UniformState?
+  }
+
+  fun update()
+  fun apply(gl: WebGLRenderingContext)
+}
+
+private class TimeUniform(private val index: Int) : UniformState {
+  companion object : UniformState.Factory {
+    override fun find(gl: WebGLRenderingContext, program: Int) =
+      gl.getUniformLocation(program, "time")?.let { TimeUniform(it) }
+  }
+
+  private var value = 0.0f
+
+  override fun update() {
+    value += 1.0f / 60.0f
+  }
+
+  override fun apply(gl: WebGLRenderingContext) {
+    gl.uniform1f(index, value)
+  }
+}
+
+private val UNIFORMS = listOf(
+  TimeUniform
+)
+
 private class Renderer private constructor(
   private val gl: WebGLRenderingContext,
   private val program: Int,
   private val buffer: Int
 ) {
-  private val uniformTime = gl.getUniformLocation(program, "time")
-  private var time = 0.0f
+  private val uniforms = UNIFORMS
+    .mapNotNull { it.find(gl, program) }
 
   companion object {
     fun create(canvas: HTMLCanvasElement, fragmentShaderSource: String): Result<String, Renderer> {
@@ -108,11 +136,11 @@ private class Renderer private constructor(
 
   fun render() {
     gl.useProgram(program)
-    gl.uniform1f(uniformTime, time)
+    uniforms.forEach { it.apply(gl) }
     gl.bindBuffer(gl.ARRAY_BUFFER, buffer)
     gl.drawArrays(gl.TRIANGLES, 0, 6)
 
-    time += 1.0f / 60.0f
+    uniforms.forEach { it.update() }
   }
 
   fun dispose() {
