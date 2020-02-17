@@ -20,25 +20,12 @@ void main() {
 }
 """
 
-private const val FRAGMENT_SHADER = """
+private const val DEFAULT_FRAGMENT_SHADER = """
 #version 100
 precision mediump float;
-uniform float time;
+
 void main( void ) {
-  vec4 node1_result = vec4(0, 0, 1, 1);
-  float node3_result = time;
-  float node4_result = sin(node3_result);
-  float node5_result = float(0.5);
-  float node6_result = node4_result * node5_result;
-  float node7_result = float(0.5);
-  float node8_result = node6_result + node7_result;
-  vec4 node9_result = node1_result * node8_result;
-  float node10_result = float(1);
-  float node11_result = node10_result - node8_result;
-  vec4 node2_result = vec4(0, 1, 0, 1);
-  vec4 node12_result = node11_result * node2_result;
-  vec4 node13_result = node9_result + node12_result;
-  gl_FragColor = node13_result;
+  gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
 }
 """
 
@@ -149,12 +136,13 @@ private class Renderer private constructor(
   }
 }
 
-fun mainPreview() = component {
+fun mainPreview(compiled: CompiledShader?) = component {
   val ref = useRef<HTMLCanvasElement?>(null)
 
-  useEffect(emptyList()) {
+  useEffect(listOf(compiled)) {
     ref.current?.let { canvas ->
-      when (val renderer = Renderer.create(canvas, FRAGMENT_SHADER)) {
+      val fragmentSource = compiled?.lines?.joinToString("\n") ?: DEFAULT_FRAGMENT_SHADER
+      when (val renderer = Renderer.create(canvas, fragmentSource)) {
         is Ok -> {
           fun render() {
             window.requestAnimationFrame { render() }
@@ -165,6 +153,7 @@ fun mainPreview() = component {
         is Err -> console.error(renderer.error)
       }
     }
+    // todo dispose
   }
 
   Canvas(

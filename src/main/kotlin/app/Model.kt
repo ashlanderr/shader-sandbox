@@ -11,6 +11,8 @@ sealed class Msg {
   class StartMove(val node: NodeId, val x: Int, val y: Int) : Msg()
   class DoMove(val x: Int, val y: Int) : Msg()
   object StopMove : Msg()
+
+  class PutNodeParam(val node: NodeId, val param: ParamId, val value: DataValue) : Msg()
 }
 
 data class NodeTypeId(val value: String) {
@@ -112,5 +114,6 @@ data class Model(
   val types: EntityMap<NodeTypeId, NodeType>,
   val nodes: EntityMap<NodeId, Node>,
   val lines: PersistentList<Line>,
-  val move: NodeMove?
+  val move: NodeMove?,
+  val compiled: CompiledShader?
 )

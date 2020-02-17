@@ -37,6 +37,13 @@ inline fun <X, R1, R2> Result<X, R1>.map(mapper: (R1) -> R2): Result<X, R2> {
   }
 }
 
+inline fun <X, R> Result<X, R>.orElse(mapper: (X) -> R): R {
+  return when (this) {
+    is Ok -> this.value
+    is Err -> mapper(this.error)
+  }
+}
+
 inline fun <X1, X2, R> Result<X1, R>.mapError(mapper: (X1) -> X2): Result<X2, R> {
   return when (this) {
     is Ok -> this
