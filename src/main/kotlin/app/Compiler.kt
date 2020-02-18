@@ -16,7 +16,7 @@ private typealias CompiledCache = PersistentMap<NodeId, CompiledResult>
 private typealias CompiledResult = Result<List<CompilerError>, CompiledNode>
 
 private data class CompiledNode(
-  val uniforms: Set<String>,
+  val globals: Set<String>,
   val code: List<String>,
   val output: PersistentMap<OutputId, OutputDesc>
 )
@@ -63,13 +63,13 @@ private fun compileToString(compiled: CompiledCache, color: Joint): Result<List<
         .filterIsInstance<Ok<CompiledNode>>()
         .map { it.value }
 
-      val uniforms = successfullyCompiled.flatMapTo(HashSet()) { it.uniforms }
+      val globals = successfullyCompiled.flatMapTo(HashSet()) { it.globals }
       val code = successfullyCompiled.flatMap { it.code } + resultLine
 
       val lines = listOf(
         "#version 100",
         "precision mediump float;",
-        *uniforms.toTypedArray(),
+        *globals.toTypedArray(),
         "void main( void ) {",
         *code.map { "  $it" }.toTypedArray(),
         "}"
@@ -164,7 +164,7 @@ private fun compileNode(
       )
     )
     CompiledNode(
-      uniforms = type.uniforms,
+      globals = type.globals,
       code = codeReplaced,
       output = output
     )

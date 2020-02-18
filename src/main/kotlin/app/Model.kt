@@ -98,7 +98,7 @@ data class NodeType(
   val inputs: PersistentSet<InputId>,
   val outputs: PersistentSet<OutputId>,
   val code: Map<List<DataType>, List<String>>,
-  val uniforms: Set<String>
+  val globals: Set<String>
 ) : Entity<NodeTypeId>
 
 data class JointLine(

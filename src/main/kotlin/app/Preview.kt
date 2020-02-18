@@ -15,7 +15,10 @@ precision highp float;
 
 attribute vec4 vertex_position;
 
+varying vec4 position;
+
 void main() {
+  position = vertex_position;
   gl_Position = vertex_position;
 }
 """

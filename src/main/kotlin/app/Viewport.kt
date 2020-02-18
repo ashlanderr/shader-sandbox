@@ -28,7 +28,7 @@ private val unknownType = NodeType(
   params = entityMapOf(),
   inputs = persistentSetOf(),
   outputs = persistentSetOf(),
-  uniforms = emptySet(),
+  globals = emptySet(),
   code = emptyMap()
 )
 
