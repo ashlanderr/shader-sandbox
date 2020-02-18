@@ -7,15 +7,22 @@ import kotlinx.collections.immutable.PersistentSet
 sealed class Cmd {}
 
 sealed class Msg {
-  class SetLines(val lines: PersistentList<Line>) : Msg()
-  class StartMove(val node: NodeId, val x: Int, val y: Int) : Msg()
-  class DoMove(val x: Int, val y: Int) : Msg()
-  object StopMove : Msg()
+  class SetLines(val lines: PersistentList<JointLine>) : Msg()
 
-  class PutNodeParam(val node: NodeId, val param: ParamId, val value: DataValue) : Msg()
+  // move
+  class MoveNode(val node: NodeId, val point: Point) : Msg()
+  class MoveSourceJoint(val node: NodeId, val output: OutputId, val point: Point) : Msg()
+  class DoMove(val point: Point) : Msg()
+  class StopOnInput(val node: NodeId, val input: InputId) : Msg()
+  object StopOnViewport : Msg()
+
+  // selection
   class SelectJoint(val joint: Joint) : Msg()
   object ClearSelection : Msg()
   object DeleteSelected : Msg()
+
+  // data
+  class PutNodeParam(val node: NodeId, val param: ParamId, val value: DataValue) : Msg()
 }
 
 data class NodeTypeId(val value: String) {
@@ -94,8 +101,12 @@ data class NodeType(
   val uniforms: Set<String>
 ) : Entity<NodeTypeId>
 
-data class Line(
+data class JointLine(
   val joint: Joint,
+  val line: Line
+)
+
+data class Line(
   val x1: Double,
   val y1: Double,
   val x2: Double,
@@ -106,11 +117,19 @@ data class Line(
   val y4: Double
 )
 
-data class NodeMove(
-  val id: NodeId,
-  val x: Int,
-  val y: Int
-)
+sealed class ViewportMove {
+  data class Node(
+    val id: NodeId,
+    val point: Point
+  ) : ViewportMove()
+
+  data class SourceJoint(
+    val node: NodeId,
+    val output: OutputId,
+    val begin: Point,
+    val end: Point
+  ) : ViewportMove()
+}
 
 sealed class Selection {
   data class Joint(val value: app.Joint) : Selection()
@@ -122,8 +141,8 @@ data class Model(
   val types: EntityMap<NodeTypeId, NodeType>,
   val nodes: EntityMap<NodeId, Node>,
   val joints: Joints,
-  val lines: PersistentList<Line>,
-  val move: NodeMove?,
+  val lines: PersistentList<JointLine>,
+  val move: ViewportMove?,
   val compiled: CompiledShader?,
   val selection: Selection?
 )

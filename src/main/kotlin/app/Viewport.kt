@@ -7,6 +7,7 @@ import io.akryl.component
 import io.akryl.dom.css.invoke
 import io.akryl.dom.css.properties.*
 import io.akryl.dom.html.Div
+import io.akryl.dom.html.For
 import io.akryl.dom.html.Path
 import io.akryl.dom.html.Svg
 import io.akryl.redux.useDispatch
@@ -15,6 +16,7 @@ import io.akryl.useEffect
 import kotlinx.collections.immutable.persistentSetOf
 import kotlinx.collections.immutable.toPersistentList
 import org.w3c.dom.HTMLElement
+import org.w3c.dom.events.MouseEvent
 import react.ReactElement
 import react_redux.Dispatch
 import kotlin.browser.document
@@ -30,6 +32,14 @@ private val unknownType = NodeType(
   code = emptyMap()
 )
 
+private const val VIEWPORT_ID = "viewport"
+
+private val MouseEvent.viewportOffset: Point? get() {
+  val viewport = document.getElementById(VIEWPORT_ID) as? HTMLElement ?: return null
+  val viewportBox = viewport.getBoundingClientRect()
+  return Point(this.clientX - viewportBox.left, this.clientY - viewportBox.top)
+}
+
 fun viewport() = component {
   val model = useSelector<Model>()
   val dispatch = useDispatch<Msg>()
@@ -41,7 +51,7 @@ fun viewport() = component {
     onKeyUp = events.onKeyUp,
     onFocus = events.onFocus,
     tabIndex = -1,
-    id = "viewport",
+    id = VIEWPORT_ID,
     css = listOf(
       flex(1, 1, 100.pct),
       width(100.pct),
@@ -55,9 +65,12 @@ fun viewport() = component {
       lines(model),
       nodes(model)
     ),
-    onMouseMove = {
+    onMouseMove = { e ->
       if (model.move != null)
-        dispatch(Msg.DoMove(it.clientX, it.clientY))
+        e.viewportOffset?.let { dispatch(Msg.DoMove(it)) }
+    },
+    onMouseUp = {
+      dispatch(Msg.StopOnViewport)
     },
     onClick = { e ->
       if (e.target === e.currentTarget) {
@@ -79,7 +92,14 @@ private fun lines(model: Model): ReactElement<*> {
       width(100.pct),
       height(100.pct)
     ),
-    children = model.lines.map { line(selection?.value == it.joint, it) }
+    children = listOf(
+      when (val move = model.move) {
+        is ViewportMove.SourceJoint -> pointLine(move.begin, move.end)
+        is ViewportMove.Node -> null
+        null -> null
+      },
+      *For(model.lines) { jointLine(selection?.value == it.joint, it) }
+    )
   )
 }
 
@@ -95,6 +115,7 @@ private fun nodes(model: Model): ReactElement<*> {
 }
 
 private fun input(joints: Joints, node: NodeId, input: InputId) = component {
+  val dispatch = useDispatch<Msg>()
   val connected = Pair(node, input) in joints
   val color = Color.white
 
@@ -119,11 +140,13 @@ private fun input(joints: Joints, node: NodeId, input: InputId) = component {
         )
       ),
       Div(text = input.value)
-    )
+    ),
+    onMouseUp = { dispatch(Msg.StopOnInput(node, input)) }
   )
 }
 
 private fun output(joints: Joints, node: NodeId, output: OutputId) = component {
+  val dispatch = useDispatch<Msg>()
   val connected = joints.any { it.value.source.first == node && it.value.source.second == output }
 
   val color = when (output) {
@@ -140,6 +163,15 @@ private fun output(joints: Joints, node: NodeId, output: OutputId) = component {
       height(1.em),
       cursor.pointer()
     ),
+    onMouseDown = { e ->
+      e.viewportOffset?.let { p ->
+        dispatch(Msg.MoveSourceJoint(
+          node = node,
+          output = output,
+          point = p
+        ))
+      }
+    },
     children = listOf(
       Div(
         id = "node-$node-output-$output",
@@ -191,8 +223,9 @@ private fun nodeHeader(node: NodeId, type: NodeType) = component {
       cursor.move()
     ),
     text = type.name,
-    onMouseDown = { dispatch(Msg.StartMove(node, it.clientX, it.clientY)) },
-    onMouseUp = { dispatch(Msg.StopMove) }
+    onMouseDown = { e ->
+      e.viewportOffset?.let { dispatch(Msg.MoveNode(node, it)) }
+    }
   )
 }
 
@@ -225,8 +258,9 @@ private fun nodeBody(joints: Joints, type: NodeType, node: Node) = component {
   )
 }
 
-private fun line(selected: Boolean, line: Line) = component {
+private fun jointLine(selected: Boolean, jointLine: JointLine) = component {
   val dispatch = useDispatch<Msg>()
+  val line = jointLine.line
 
   Path(
     css = listOf(
@@ -240,17 +274,42 @@ private fun line(selected: Boolean, line: Line) = component {
       )
     ),
     d = "M${line.x1} ${line.y1} C${line.x2} ${line.y2}, ${line.x3} ${line.y3}, ${line.x4} ${line.y4}",
-    onClick = { dispatch(Msg.SelectJoint(line.joint)) }
+    onClick = { dispatch(Msg.SelectJoint(jointLine.joint)) }
   )
+}
+
+private fun pointLine(a: Point, b: Point) = component {
+  val line = lineFromPoints(a, b)
+
+  Path(
+    css = listOf(
+      stroke("#ffffff"),
+      strokeWidth("2"),
+      fill("transparent")
+    ),
+    d = "M${line.x1} ${line.y1} C${line.x2} ${line.y2}, ${line.x3} ${line.y3}, ${line.x4} ${line.y4}"
+  )
+}
+
+private fun lineFromPoints(a: Point, b: Point): Line {
+  val x1 = a.x
+  val y1 = a.y
+  val x4 = b.x
+  val y4 = b.y
+  val w = max(x4 - x1, 50.0)
+  val x2 = x1 + w / 2
+  val x3 = x4 - w / 2
+
+  return Line(x1, y1, x2, y1, x3, y4, x4, y4)
 }
 
 private fun ComponentScope.useBuildLines(model: Model) {
   val dispatch = useDispatch<Msg>()
 
   useEffect(listOf(model.nodes, model.joints)) {
-    val lines = ArrayList<Line>()
+    val lines = ArrayList<JointLine>()
 
-    val viewport = document.getElementById("viewport") as? HTMLElement ?: return@useEffect
+    val viewport = document.getElementById(VIEWPORT_ID) as? HTMLElement ?: return@useEffect
     val viewportBox = viewport.getBoundingClientRect()
 
     for ((_, joint) in model.joints) {
@@ -261,15 +320,16 @@ private fun ComponentScope.useBuildLines(model: Model) {
       val inputBox = input.getBoundingClientRect()
       val outputBox = output.getBoundingClientRect()
 
-      val x1 = outputBox.left - viewportBox.left + outputBox.width / 2
-      val y1 = outputBox.top - viewportBox.top + outputBox.height / 2
-      val x4 = inputBox.left - viewportBox.left + inputBox.width / 2
-      val y4 = inputBox.top - viewportBox.top + inputBox.height / 2
-      val w = max(x4 - x1, 50.0)
-      val x2 = x1 + w / 2
-      val x3 = x4 - w / 2
+      val p1 = Point(
+        outputBox.left - viewportBox.left + outputBox.width / 2,
+        outputBox.top - viewportBox.top + outputBox.height / 2
+      )
+      val p2 = Point(
+        inputBox.left - viewportBox.left + inputBox.width / 2,
+        inputBox.top - viewportBox.top + inputBox.height / 2
+      )
 
-      lines.add(Line(joint, x1, y1, x2, y1, x3, y4, x4, y4))
+      lines.add(JointLine(joint, lineFromPoints(p1, p2)))
     }
 
     dispatch(Msg.SetLines(lines.toPersistentList()))

@@ -20,7 +20,7 @@ val store by lazy {
       null
     ),
     update = ::update,
-    execute = ::execute,
+    execute = { emptyList() },
     enhancer = js("window.__REDUX_DEVTOOLS_EXTENSION__ && window.__REDUX_DEVTOOLS_EXTENSION__()")
       .unsafeCast<StoreEnhancer<Model, MsgAction<Msg>>>()
   )
@@ -29,18 +29,16 @@ val store by lazy {
 private fun update(model: Model, msg: Msg): Pair<Model, Cmd?> {
   return when (msg) {
     is Msg.SetLines -> setLines(model, msg)
-    is Msg.StartMove -> startMove(model, msg)
-    is Msg.StopMove -> stopMove(model)
+    is Msg.MoveNode -> moveNode(model, msg)
+    is Msg.MoveSourceJoint -> moveSourceJoint(model, msg)
+    is Msg.StopOnInput -> stopOnInput(model, msg)
+    is Msg.StopOnViewport -> stopOnViewport(model)
     is Msg.DoMove -> doMove(model, msg)
     is Msg.PutNodeParam -> putNodeParam(model, msg)
     is Msg.SelectJoint -> selectJoint(model, msg)
     is Msg.ClearSelection -> clearSelection(model)
     is Msg.DeleteSelected -> deleteSelected(model)
   }
-}
-
-private suspend fun execute(cmd: Cmd): List<Msg> {
-  return emptyList()
 }
 
 private fun setLines(model: Model, msg: Msg.SetLines): Pair<Model, Nothing?> {
@@ -50,14 +48,44 @@ private fun setLines(model: Model, msg: Msg.SetLines): Pair<Model, Nothing?> {
   )
 }
 
-private fun startMove(model: Model, msg: Msg.StartMove): Pair<Model, Nothing?> {
+private fun moveNode(model: Model, msg: Msg.MoveNode): Pair<Model, Nothing?> {
   return Pair(
-    model.copy(move = NodeMove(msg.node, msg.x, msg.y)),
+    model.copy(move = ViewportMove.Node(msg.node, msg.point)),
     null
   )
 }
 
-private fun stopMove(model: Model): Pair<Model, Nothing?> {
+private fun moveSourceJoint(model: Model, msg: Msg.MoveSourceJoint): Pair<Model, Cmd?> {
+  return Pair(
+    model.copy(move = ViewportMove.SourceJoint(msg.node, msg.output, msg.point, msg.point)),
+    null
+  )
+}
+
+fun stopOnInput(model: Model, msg: Msg.StopOnInput): Pair<Model, Cmd?> {
+  return when (val move = model.move) {
+    is ViewportMove.SourceJoint -> {
+      val newModel = model.copy(
+        joints = model.joints.put(
+          Joint(
+            source = Pair(move.node, move.output),
+            dest = Pair(msg.node, msg.input)
+          )
+        ),
+        move = null
+      )
+      triggerCompile(newModel)
+    }
+
+    is ViewportMove.Node ->
+      Pair(model, null)
+
+    null ->
+      Pair(model, null)
+  }
+}
+
+private fun stopOnViewport(model: Model): Pair<Model, Nothing?> {
   return Pair(
     model.copy(move = null),
     null
@@ -65,21 +93,35 @@ private fun stopMove(model: Model): Pair<Model, Nothing?> {
 }
 
 private fun doMove(model: Model, msg: Msg.DoMove): Pair<Model, Nothing?> {
-  val move = model.move ?: return Pair(model, null)
-  val dx = msg.x - move.x
-  val dy = msg.y - move.y
+  return when (val move = model.move) {
+    is ViewportMove.Node -> {
+      val dx = msg.point.x - move.point.x
+      val dy = msg.point.y - move.point.y
 
-  val node = model.nodes[move.id] ?: return Pair(model, null)
-  val newOffset = Point(node.offset.x + dx, node.offset.y + dy)
-  val newNode = node.copy(offset = newOffset)
-  val newNodes = model.nodes.put(newNode)
+      val node = model.nodes[move.id] ?: return Pair(model, null)
+      val newOffset = Point(node.offset.x + dx, node.offset.y + dy)
+      val newNode = node.copy(offset = newOffset)
+      val newNodes = model.nodes.put(newNode)
 
-  val newMove = move.copy(x = msg.x, y = msg.y)
+      val newMove = move.copy(point = msg.point)
 
-  return Pair(
-    model.copy(nodes = newNodes, move = newMove),
-    null
-  )
+      Pair(
+        model.copy(nodes = newNodes, move = newMove),
+        null
+      )
+    }
+
+    is ViewportMove.SourceJoint -> {
+      Pair(
+        model.copy(
+          move = move.copy(end = msg.point)
+        ),
+        null
+      )
+    }
+
+    null -> Pair(model, null)
+  }
 }
 
 private fun triggerCompile(model: Model): Pair<Model, Cmd?> {
