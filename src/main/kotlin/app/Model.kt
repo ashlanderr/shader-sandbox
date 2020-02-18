@@ -14,6 +14,8 @@ sealed class Msg {
 
   class PutNodeParam(val node: NodeId, val param: ParamId, val value: DataValue) : Msg()
   class SelectJoint(val joint: Joint) : Msg()
+  object ClearSelection : Msg()
+  object DeleteSelected : Msg()
 }
 
 data class NodeTypeId(val value: String) {
@@ -114,10 +116,12 @@ sealed class Selection {
   data class Joint(val value: app.Joint) : Selection()
 }
 
+typealias Joints = EntityMap<Pair<NodeId, InputId>, Joint>
+
 data class Model(
   val types: EntityMap<NodeTypeId, NodeType>,
   val nodes: EntityMap<NodeId, Node>,
-  val joints: EntityMap<Pair<NodeId, InputId>, Joint>,
+  val joints: Joints,
   val lines: PersistentList<Line>,
   val move: NodeMove?,
   val compiled: CompiledShader?,

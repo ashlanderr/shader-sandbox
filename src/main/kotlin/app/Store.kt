@@ -34,6 +34,8 @@ private fun update(model: Model, msg: Msg): Pair<Model, Cmd?> {
     is Msg.DoMove -> doMove(model, msg)
     is Msg.PutNodeParam -> putNodeParam(model, msg)
     is Msg.SelectJoint -> selectJoint(model, msg)
+    is Msg.ClearSelection -> clearSelection(model)
+    is Msg.DeleteSelected -> deleteSelected(model)
   }
 }
 
@@ -82,12 +84,17 @@ private fun doMove(model: Model, msg: Msg.DoMove): Pair<Model, Nothing?> {
 
 private fun triggerCompile(model: Model): Pair<Model, Cmd?> {
   // todo async compile
-  val newModel = model.copy(
-    compiled = compile(model.types, model.nodes, model.joints).orElse { err ->
-      console.error(err)
-      model.compiled
-    }
-  )
+  val newCompiled = compile(model.types, model.nodes, model.joints).orElse { err ->
+    console.error(err)
+    model.compiled
+  }
+  val newModel = if (newCompiled != model.compiled) {
+    model.copy(
+      compiled = newCompiled
+    )
+  } else {
+    model
+  }
   return Pair(newModel, null)
 }
 
@@ -108,4 +115,25 @@ private fun selectJoint(model: Model, msg: Msg.SelectJoint): Pair<Model, Cmd?> {
     model.copy(selection = Selection.Joint(msg.joint)),
     null
   )
+}
+
+fun clearSelection(model: Model): Pair<Model, Cmd?> {
+  return Pair(
+    model.copy(selection = null),
+    null
+  )
+}
+
+fun deleteSelected(model: Model): Pair<Model, Cmd?> {
+  val newModel = when (model.selection) {
+    is Selection.Joint ->
+      model.copy(
+        joints = model.joints.remove(model.selection.value.dest)
+      )
+
+    null ->
+      model
+  }
+
+  return triggerCompile(newModel)
 }

@@ -12,7 +12,9 @@ class EntityMap<Id, E : Entity<Id>> private constructor (private val map: Persis
 
   override fun iterator() = map.iterator()
   operator fun get(id: Id) = map[id]
+  operator fun contains(id: Id) = id in map
   fun put(entity: E) = EntityMap(map.put(entity.component1(), entity))
+  fun remove(id: Id) = EntityMap(map.remove(id))
 }
 
 fun <Id, E: Entity<Id>> entityMapOf(vararg items: E) = EntityMap(*items)
