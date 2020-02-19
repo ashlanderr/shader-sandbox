@@ -38,6 +38,7 @@ private fun update(model: Model, msg: Msg): Pair<Model, Cmd?> {
     is Msg.StopOnViewport -> stopOnViewport(model)
     is Msg.DoMove -> doMove(model, msg)
     is Msg.SelectJoint -> selectJoint(model, msg)
+    is Msg.SelectNode -> selectNode(model, msg)
     is Msg.ClearSelection -> clearSelection(model)
     is Msg.DeleteSelected -> deleteSelected(model)
     is Msg.PutNodeParam -> putNodeParam(model, msg)
@@ -160,6 +161,13 @@ private fun selectJoint(model: Model, msg: Msg.SelectJoint): Pair<Model, Cmd?> {
   )
 }
 
+private fun selectNode(model: Model, msg: Msg.SelectNode): Pair<Model, Cmd?> {
+  return Pair(
+    model.copy(selection = Selection.Node(msg.node)),
+    null
+  )
+}
+
 fun clearSelection(model: Model): Pair<Model, Cmd?> {
   return Pair(
     model.copy(selection = null),
@@ -172,6 +180,13 @@ fun deleteSelected(model: Model): Pair<Model, Cmd?> {
     is Selection.Joint ->
       model.copy(
         joints = model.joints.remove(model.selection.value.dest)
+      )
+
+    is Selection.Node ->
+      model.copy(
+        nodes = model.nodes.remove(model.selection.node),
+        joints = model.joints
+          .filterValues { it.source.first != model.selection.node && it.dest.first != model.selection.node }
       )
 
     null ->

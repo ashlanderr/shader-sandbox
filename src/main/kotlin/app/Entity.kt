@@ -8,7 +8,7 @@ interface Entity<Id> {
 }
 
 class EntityMap<Id, E : Entity<Id>> private constructor (private val map: PersistentMap<Id, E>) : Iterable<Map.Entry<Id, E>> {
-  constructor (vararg items: E) : this(items.associateBy { it.component1() }.toPersistentMap())
+  constructor (items: Iterable<E>) : this(items.associateBy { it.component1() }.toPersistentMap())
 
   val keys get() = map.keys
   val values get() = map.values
@@ -19,4 +19,7 @@ class EntityMap<Id, E : Entity<Id>> private constructor (private val map: Persis
   fun remove(id: Id) = EntityMap(map.remove(id))
 }
 
-fun <Id, E: Entity<Id>> entityMapOf(vararg items: E) = EntityMap(*items)
+fun <Id, E: Entity<Id>> entityMapOf(vararg items: E) = EntityMap(items.asIterable())
+
+fun <Id, E: Entity<Id>> EntityMap<Id, E>.filterValues(predicate: (E) -> Boolean) =
+  EntityMap(values.filter(predicate))

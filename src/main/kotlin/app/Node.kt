@@ -103,24 +103,29 @@ fun node(model: Model, node: Node) = component {
       userSelect("none")
     ),
     children = listOf(
-      nodeHeader(node.id, type),
+      nodeHeader(model, node.id, type),
       nodeBody(model.joints, type, node)
     )
   )
 }
 
-private fun nodeHeader(node: NodeId, type: NodeType) = component {
+private fun nodeHeader(model: Model, node: NodeId, type: NodeType) = component {
   val dispatch = useDispatch<Msg>()
+  val selected = model.selection is Selection.Node && model.selection.node == node
 
   Div(
     css = listOf(
       padding(vertical = 8.px, horizontal = 4.px),
       textAlign.center(),
-      cursor.move()
+      cursor.move(),
+      if (selected) backgroundColor(0x00fffc) else null
     ),
     text = type.id.name,
     onMouseDown = { e ->
-      e.viewportOffset?.let { dispatch(Msg.MoveNode(node, it)) }
+      if (e.target === e.currentTarget) {
+        dispatch(Msg.SelectNode(node))
+        e.viewportOffset?.let { dispatch(Msg.MoveNode(node, it)) }
+      }
     }
   )
 }

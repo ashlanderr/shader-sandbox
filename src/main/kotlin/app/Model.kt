@@ -19,6 +19,7 @@ sealed class Msg {
 
   // selection
   class SelectJoint(val joint: Joint) : Msg()
+  class SelectNode(val node: NodeId) : Msg()
   object ClearSelection : Msg()
   object DeleteSelected : Msg()
 
@@ -135,6 +136,7 @@ sealed class ViewportMove {
 
 sealed class Selection {
   data class Joint(val value: app.Joint) : Selection()
+  data class Node(val node: NodeId) : Selection()
 }
 
 typealias Joints = EntityMap<Pair<NodeId, InputId>, Joint>
