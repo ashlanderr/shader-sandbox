@@ -3,7 +3,7 @@ package app
 import io.akryl.redux.MsgAction
 import io.akryl.redux.createStore
 import kotlinx.collections.immutable.persistentListOf
-import kotlinx.collections.immutable.persistentMapOf
+import kotlinx.collections.immutable.toPersistentMap
 import redux.StoreEnhancer
 
 val store by lazy {
@@ -179,14 +179,16 @@ fun deleteSelected(model: Model): Pair<Model, Cmd?> {
   val newModel = when (model.selection) {
     is Selection.Joint ->
       model.copy(
-        joints = model.joints.remove(model.selection.value.dest)
+        joints = model.joints.remove(model.selection.value.dest),
+        selection = null
       )
 
     is Selection.Node ->
       model.copy(
         nodes = model.nodes.remove(model.selection.node),
         joints = model.joints
-          .filterValues { it.source.first != model.selection.node && it.dest.first != model.selection.node }
+          .filterValues { it.source.first != model.selection.node && it.dest.first != model.selection.node },
+        selection = null
       )
 
     null ->
@@ -209,6 +211,12 @@ private fun putNodeParam(model: Model, msg: Msg.PutNodeParam): Pair<Model, Cmd?>
 }
 
 private fun addNode(model: Model, msg: Msg.AddNode): Pair<Model, Cmd?> {
+  val type = model.types[msg.type] ?: return Pair(model, null)
+
+  val defaultParams = type.params
+    .associate { Pair(it.key, defaultValue(it.value)) }
+    .toPersistentMap()
+
   val lastId = model.nodes.keys
     .map { it.value }
     .max()
@@ -218,10 +226,19 @@ private fun addNode(model: Model, msg: Msg.AddNode): Pair<Model, Cmd?> {
     id = NodeId(lastId + 1),
     type = msg.type,
     offset = msg.offset,
-    params = persistentMapOf()
+    params = defaultParams
   )
   val newModel = model.copy(
     nodes = model.nodes.put(node)
   )
   return triggerCompile(newModel)
+}
+
+private fun defaultValue(paramType: ParamType): DataValue {
+  return when (paramType.type) {
+    DataType.Scalar ->
+      DataValue.Scalar(0.0f)
+    DataType.Color ->
+      DataValue.Color(0.0f, 0.0f, 0.0f, 0.0f)
+  }
 }

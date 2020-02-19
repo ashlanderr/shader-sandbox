@@ -1,8 +1,6 @@
 package app
 
-import kotlinx.collections.immutable.PersistentList
-import kotlinx.collections.immutable.PersistentMap
-import kotlinx.collections.immutable.PersistentSet
+import kotlinx.collections.immutable.*
 
 sealed class Cmd {}
 
@@ -157,3 +155,20 @@ fun String.toNodeTypeId(): NodeTypeId? {
   if (parts.size != 2) return null
   return NodeTypeId(parts[0], parts[1])
 }
+
+val UNKNOWN_TYPE = NodeType(
+  id = NodeTypeId("<Unknown>", "<Unknown>"),
+  params = entityMapOf(),
+  inputs = persistentSetOf(),
+  outputs = persistentSetOf(),
+  globals = emptySet(),
+  code = emptyMap(),
+  hidden = true
+)
+
+val UNKNOWN_NODE = Node(
+  id = NodeId(-1),
+  params = persistentMapOf(),
+  offset = Point(0.0, 0.0),
+  type = UNKNOWN_TYPE.id
+)

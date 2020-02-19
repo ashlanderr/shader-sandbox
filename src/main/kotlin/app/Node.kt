@@ -4,17 +4,6 @@ import io.akryl.component
 import io.akryl.dom.css.properties.*
 import io.akryl.dom.html.Div
 import io.akryl.redux.useDispatch
-import kotlinx.collections.immutable.persistentSetOf
-
-private val unknownType = NodeType(
-  id = NodeTypeId("<Unknown>", "<Unknown>"),
-  params = entityMapOf(),
-  inputs = persistentSetOf(),
-  outputs = persistentSetOf(),
-  globals = emptySet(),
-  code = emptyMap(),
-  hidden = true
-)
 
 private fun input(joints: Joints, node: NodeId, input: InputId) = component {
   val dispatch = useDispatch<Msg>()
@@ -92,7 +81,7 @@ private fun output(joints: Joints, node: NodeId, output: OutputId) = component {
 }
 
 fun node(model: Model, node: Node) = component {
-  val type = model.types[node.type] ?: unknownType
+  val type = model.types[node.type] ?: UNKNOWN_TYPE
 
   Div(
     css = listOf(
