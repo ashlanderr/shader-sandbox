@@ -41,7 +41,11 @@ val NODE_TYPES = entityMapOf(
     ),
     inputs = persistentSetOf(),
     outputs = persistentSetOf(
-      OutputId.All
+      OutputId.All,
+      OutputId.Red,
+      OutputId.Green,
+      OutputId.Blue,
+      OutputId.Alpha
     ),
     globals = emptySet(),
     code = mapOf(
@@ -60,7 +64,11 @@ val NODE_TYPES = entityMapOf(
       InputId("A")
     ),
     outputs = persistentSetOf(
-      OutputId.All
+      OutputId.All,
+      OutputId.Red,
+      OutputId.Green,
+      OutputId.Blue,
+      OutputId.Alpha
     ),
     globals = emptySet(),
     code = mapOf(
@@ -89,7 +97,11 @@ val NODE_TYPES = entityMapOf(
     params = entityMapOf(),
     inputs = persistentSetOf(),
     outputs = persistentSetOf(
-      OutputId.All
+      OutputId.All,
+      OutputId.Red,
+      OutputId.Green,
+      OutputId.Blue,
+      OutputId.Alpha
     ),
     globals = setOf(
       "varying vec4 position;"
@@ -234,6 +246,7 @@ val NODE_TYPES = entityMapOf(
     ),
     globals = emptySet(),
     code = mapOf(
+      listOf(Scalar, Scalar, Scalar) to listOf("float $NODE_RESULT_VAR = distance(#inputA, #inputB);"),
       listOf(Color, Color, Scalar) to listOf("float $NODE_RESULT_VAR = distance(#inputA, #inputB);")
     )
   ),

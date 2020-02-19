@@ -156,13 +156,8 @@ private fun compileNode(
         line.replace(input.first, input.second)
       }
     }
-    val output = persistentMapOf(
-      // todo all outputs
-      OutputId.All to OutputDesc(
-        variable = "node${node.id}_result",
-        type = outputType
-      )
-    )
+    val variable = "node${node.id}_result"
+    val output = buildOutput(outputType, variable)
     CompiledNode(
       globals = type.globals,
       code = codeReplaced,
@@ -171,6 +166,21 @@ private fun compileNode(
   }
 
   return newCompiled.put(nodeId, result)
+}
+
+private fun buildOutput(outputType: DataType, variable: String): PersistentMap<OutputId, OutputDesc> {
+  return when (outputType) {
+    DataType.Scalar -> persistentMapOf(
+      OutputId.All to OutputDesc(variable, outputType)
+    )
+    DataType.Color -> persistentMapOf(
+      OutputId.All to OutputDesc(variable, outputType),
+      OutputId.Red to OutputDesc("$variable.r", DataType.Scalar),
+      OutputId.Green to OutputDesc("$variable.g", DataType.Scalar),
+      OutputId.Blue to OutputDesc("$variable.b", DataType.Scalar),
+      OutputId.Alpha to OutputDesc("$variable.a", DataType.Scalar)
+    )
+  }
 }
 
 private fun findInput(
