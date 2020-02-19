@@ -5,7 +5,7 @@ import app.DataType.Scalar
 import kotlinx.collections.immutable.persistentSetOf
 
 val RESULT_NODE_ID = NodeId("result")
-val RESULT_TYPE_ID = NodeTypeId("result")
+val RESULT_TYPE_ID = NodeTypeId("Global", "Result")
 val RESULT_INPUT_COLOR = InputId("Color")
 
 const val NODE_RESULT_VAR = "#node_result"
@@ -13,8 +13,7 @@ const val NODE_RESULT_VAR = "#node_result"
 val NODE_TYPES = entityMapOf(
   // constants
   NodeType(
-    id = NodeTypeId("const"),
-    name = "Constant",
+    id = NodeTypeId("Constants", "Scalar"),
     params = entityMapOf(
       ParamType(
         id = ParamId("Value"),
@@ -31,8 +30,7 @@ val NODE_TYPES = entityMapOf(
     )
   ),
   NodeType(
-    id = NodeTypeId("color"),
-    name = "Color",
+    id = NodeTypeId("Constants", "Color"),
     params = entityMapOf(
       ParamType(
         id = ParamId("Value"),
@@ -48,10 +46,27 @@ val NODE_TYPES = entityMapOf(
       listOf(Color) to listOf("vec4 $NODE_RESULT_VAR = #paramValue;")
     )
   ),
+  // builders
+  NodeType(
+    id = NodeTypeId("Builders", "Color"),
+    params = entityMapOf(),
+    inputs = persistentSetOf(
+      InputId("R"),
+      InputId("G"),
+      InputId("B"),
+      InputId("A")
+    ),
+    outputs = persistentSetOf(
+      OutputId.All
+    ),
+    globals = emptySet(),
+    code = mapOf(
+      listOf(Scalar, Scalar, Scalar, Scalar, Color) to listOf("vec4 $NODE_RESULT_VAR = vec4(#inputR, #inputG, #inputB, #inputA);")
+    )
+  ),
   // globals
   NodeType(
-    id = NodeTypeId("time"),
-    name = "Time",
+    id = NodeTypeId("Globals", "Time"),
     params = entityMapOf(),
     inputs = persistentSetOf(),
     outputs = persistentSetOf(
@@ -65,8 +80,7 @@ val NODE_TYPES = entityMapOf(
     )
   ),
   NodeType(
-    id = NodeTypeId("position"),
-    name = "Position",
+    id = NodeTypeId("Globals", "Position"),
     params = entityMapOf(),
     inputs = persistentSetOf(),
     outputs = persistentSetOf(
@@ -76,12 +90,11 @@ val NODE_TYPES = entityMapOf(
       "varying vec4 position;"
     ),
     code = mapOf(
-      listOf(Scalar) to listOf("vec4 $NODE_RESULT_VAR = position;")
+      listOf(Color) to listOf("vec4 $NODE_RESULT_VAR = position;")
     )
   ),
   NodeType(
     id = RESULT_TYPE_ID,
-    name = "Result",
     params = entityMapOf(),
     inputs = persistentSetOf(
       RESULT_INPUT_COLOR
@@ -90,10 +103,9 @@ val NODE_TYPES = entityMapOf(
     globals = emptySet(),
     code = emptyMap()
   ),
-  // operations
+  // math
   NodeType(
-    id = NodeTypeId("add"),
-    name = "Add",
+    id = NodeTypeId("Math", "add"),
     params = entityMapOf(),
     inputs = persistentSetOf(
       InputId("A"),
@@ -111,8 +123,7 @@ val NODE_TYPES = entityMapOf(
     )
   ),
   NodeType(
-    id = NodeTypeId("sub"),
-    name = "Subtract",
+    id = NodeTypeId("Math", "Subtract"),
     params = entityMapOf(),
     inputs = persistentSetOf(
       InputId("A"),
@@ -130,8 +141,7 @@ val NODE_TYPES = entityMapOf(
     )
   ),
   NodeType(
-    id = NodeTypeId("mul"),
-    name = "Multiply",
+    id = NodeTypeId("Math", "Multiply"),
     params = entityMapOf(),
     inputs = persistentSetOf(
       InputId("A"),
@@ -148,10 +158,75 @@ val NODE_TYPES = entityMapOf(
       listOf(Color, Color, Color) to listOf("vec4 $NODE_RESULT_VAR = #inputA * #inputB;")
     )
   ),
+  NodeType(
+    id = NodeTypeId("Math", "Divide"),
+    params = entityMapOf(),
+    inputs = persistentSetOf(
+      InputId("A"),
+      InputId("B")
+    ),
+    outputs = persistentSetOf(
+      OutputId.All
+    ),
+    globals = emptySet(),
+    code = mapOf(
+      listOf(Scalar, Scalar, Scalar) to listOf("float $NODE_RESULT_VAR = #inputA / #inputB;"),
+      listOf(Scalar, Color, Color) to listOf("vec4 $NODE_RESULT_VAR = #inputA / #inputB;"),
+      listOf(Color, Scalar, Color) to listOf("vec4 $NODE_RESULT_VAR = #inputA / #inputB;"),
+      listOf(Color, Color, Color) to listOf("vec4 $NODE_RESULT_VAR = #inputA / #inputB;")
+    )
+  ),
+  NodeType(
+    id = NodeTypeId("Math", "Max"),
+    params = entityMapOf(),
+    inputs = persistentSetOf(
+      InputId("A"),
+      InputId("B")
+    ),
+    outputs = persistentSetOf(
+      OutputId.All
+    ),
+    globals = emptySet(),
+    code = mapOf(
+      listOf(Scalar, Scalar, Scalar) to listOf("float $NODE_RESULT_VAR = max(#inputA, #inputB);"),
+      listOf(Color, Color, Color) to listOf("vec4 $NODE_RESULT_VAR = max(#inputA, #inputB);")
+    )
+  ),
+  NodeType(
+    id = NodeTypeId("Math", "Min"),
+    params = entityMapOf(),
+    inputs = persistentSetOf(
+      InputId("A"),
+      InputId("B")
+    ),
+    outputs = persistentSetOf(
+      OutputId.All
+    ),
+    globals = emptySet(),
+    code = mapOf(
+      listOf(Scalar, Scalar, Scalar) to listOf("float $NODE_RESULT_VAR = min(#inputA, #inputB);"),
+      listOf(Color, Color, Color) to listOf("vec4 $NODE_RESULT_VAR = min(#inputA, #inputB);")
+    )
+  ),
+  // vectors
+  NodeType(
+    id = NodeTypeId("Vectors", "Distance"),
+    params = entityMapOf(),
+    inputs = persistentSetOf(
+      InputId("A"),
+      InputId("B")
+    ),
+    outputs = persistentSetOf(
+      OutputId.All
+    ),
+    globals = emptySet(),
+    code = mapOf(
+      listOf(Color, Color, Scalar) to listOf("float $NODE_RESULT_VAR = distance(#inputA, #inputB);")
+    )
+  ),
   // trigonometry
   NodeType(
-    id = NodeTypeId("sin"),
-    name = "Sin",
+    id = NodeTypeId("Trigonometry", "Sin"),
     params = entityMapOf(),
     inputs = persistentSetOf(
       InputId("X")
@@ -163,7 +238,23 @@ val NODE_TYPES = entityMapOf(
     code = mapOf(
       listOf(Scalar, Scalar) to listOf("float $NODE_RESULT_VAR = sin(#inputX);")
     )
+  ),
+  NodeType(
+    id = NodeTypeId("Trigonometry", "Cos"),
+    params = entityMapOf(),
+    inputs = persistentSetOf(
+      InputId("X")
+    ),
+    outputs = persistentSetOf(
+      OutputId.All
+    ),
+    globals = emptySet(),
+    code = mapOf(
+      listOf(Scalar, Scalar) to listOf("float $NODE_RESULT_VAR = cos(#inputX);")
+    )
   )
 )
 
 // todo implicit type cast from float to vec4
+// todo rename color to vec4
+// todo add vec2, vec3

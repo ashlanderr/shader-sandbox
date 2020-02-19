@@ -25,8 +25,8 @@ sealed class Msg {
   class PutNodeParam(val node: NodeId, val param: ParamId, val value: DataValue) : Msg()
 }
 
-data class NodeTypeId(val value: String) {
-  override fun toString() = value
+data class NodeTypeId(val category: String, val name: String) {
+  override fun toString() = "$category/$name"
 }
 
 data class NodeId(val value: String) {
@@ -93,7 +93,6 @@ data class ParamType(
 
 data class NodeType(
   val id: NodeTypeId,
-  val name: String,
   val params: EntityMap<ParamId, ParamType>,
   val inputs: PersistentSet<InputId>,
   val outputs: PersistentSet<OutputId>,

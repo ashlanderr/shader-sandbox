@@ -23,8 +23,7 @@ import kotlin.browser.document
 import kotlin.math.max
 
 private val unknownType = NodeType(
-  id = NodeTypeId("unknown"),
-  name = "<Unknown>",
+  id = NodeTypeId("<Unknown>", "<Unknown>"),
   params = entityMapOf(),
   inputs = persistentSetOf(),
   outputs = persistentSetOf(),
@@ -222,7 +221,7 @@ private fun nodeHeader(node: NodeId, type: NodeType) = component {
       textAlign.center(),
       cursor.move()
     ),
-    text = type.name,
+    text = type.id.name,
     onMouseDown = { e ->
       e.viewportOffset?.let { dispatch(Msg.MoveNode(node, it)) }
     }
