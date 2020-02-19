@@ -95,6 +95,7 @@ data class ParamType(
 
 data class NodeType(
   val id: NodeTypeId,
+  val hidden: Boolean,
   val params: EntityMap<ParamId, ParamType>,
   val inputs: PersistentSet<InputId>,
   val outputs: PersistentSet<OutputId>,

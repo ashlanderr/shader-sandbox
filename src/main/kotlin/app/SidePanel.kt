@@ -58,13 +58,16 @@ private fun typesCatalogue(model: Model) = component {
 }
 
 private fun categories(model: Model) = component {
-  val types = if (model.search != null) {
-    model.types.values.filter { it.id.name.toLowerCase().contains(model.search.toLowerCase()) }
+  val types = model.types.values
+    .filterNot { it.hidden }
+
+  val searchTypes = if (model.search != null) {
+    types.filter { it.id.name.toLowerCase().contains(model.search.toLowerCase()) }
   } else {
-    model.types.values
+    types
   }
 
-  val categories = types.groupBy { it.id.category }
+  val categories = searchTypes.groupBy { it.id.category }
 
   fun onDrag(type: NodeTypeId, e: DragEvent) {
     e.dataTransfer?.setData("text", type.toString())

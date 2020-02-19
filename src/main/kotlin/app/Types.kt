@@ -14,6 +14,7 @@ val NODE_TYPES = entityMapOf(
   // constants
   NodeType(
     id = NodeTypeId("Constant", "Scalar"),
+    hidden = false,
     params = entityMapOf(
       ParamType(
         id = ParamId("Value"),
@@ -31,6 +32,7 @@ val NODE_TYPES = entityMapOf(
   ),
   NodeType(
     id = NodeTypeId("Constant", "Color"),
+    hidden = false,
     params = entityMapOf(
       ParamType(
         id = ParamId("Value"),
@@ -49,6 +51,7 @@ val NODE_TYPES = entityMapOf(
   // builders
   NodeType(
     id = NodeTypeId("Builder", "Color"),
+    hidden = false,
     params = entityMapOf(),
     inputs = persistentSetOf(
       InputId("R"),
@@ -67,6 +70,7 @@ val NODE_TYPES = entityMapOf(
   // globals
   NodeType(
     id = NodeTypeId("Global", "Time"),
+    hidden = false,
     params = entityMapOf(),
     inputs = persistentSetOf(),
     outputs = persistentSetOf(
@@ -81,6 +85,7 @@ val NODE_TYPES = entityMapOf(
   ),
   NodeType(
     id = NodeTypeId("Global", "Position"),
+    hidden = false,
     params = entityMapOf(),
     inputs = persistentSetOf(),
     outputs = persistentSetOf(
@@ -95,6 +100,7 @@ val NODE_TYPES = entityMapOf(
   ),
   NodeType(
     id = RESULT_TYPE_ID,
+    hidden = true,
     params = entityMapOf(),
     inputs = persistentSetOf(
       RESULT_INPUT_COLOR
@@ -106,6 +112,7 @@ val NODE_TYPES = entityMapOf(
   // math
   NodeType(
     id = NodeTypeId("Math", "Add"),
+    hidden = false,
     params = entityMapOf(),
     inputs = persistentSetOf(
       InputId("A"),
@@ -124,6 +131,7 @@ val NODE_TYPES = entityMapOf(
   ),
   NodeType(
     id = NodeTypeId("Math", "Subtract"),
+    hidden = false,
     params = entityMapOf(),
     inputs = persistentSetOf(
       InputId("A"),
@@ -142,6 +150,7 @@ val NODE_TYPES = entityMapOf(
   ),
   NodeType(
     id = NodeTypeId("Math", "Multiply"),
+    hidden = false,
     params = entityMapOf(),
     inputs = persistentSetOf(
       InputId("A"),
@@ -160,6 +169,7 @@ val NODE_TYPES = entityMapOf(
   ),
   NodeType(
     id = NodeTypeId("Math", "Divide"),
+    hidden = false,
     params = entityMapOf(),
     inputs = persistentSetOf(
       InputId("A"),
@@ -178,6 +188,7 @@ val NODE_TYPES = entityMapOf(
   ),
   NodeType(
     id = NodeTypeId("Math", "Max"),
+    hidden = false,
     params = entityMapOf(),
     inputs = persistentSetOf(
       InputId("A"),
@@ -194,6 +205,7 @@ val NODE_TYPES = entityMapOf(
   ),
   NodeType(
     id = NodeTypeId("Math", "Min"),
+    hidden = false,
     params = entityMapOf(),
     inputs = persistentSetOf(
       InputId("A"),
@@ -211,6 +223,7 @@ val NODE_TYPES = entityMapOf(
   // vectors
   NodeType(
     id = NodeTypeId("Vector", "Distance"),
+    hidden = false,
     params = entityMapOf(),
     inputs = persistentSetOf(
       InputId("A"),
@@ -227,6 +240,7 @@ val NODE_TYPES = entityMapOf(
   // trigonometry
   NodeType(
     id = NodeTypeId("Trigonometry", "Sin"),
+    hidden = false,
     params = entityMapOf(),
     inputs = persistentSetOf(
       InputId("X")
@@ -241,6 +255,7 @@ val NODE_TYPES = entityMapOf(
   ),
   NodeType(
     id = NodeTypeId("Trigonometry", "Cos"),
+    hidden = false,
     params = entityMapOf(),
     inputs = persistentSetOf(
       InputId("X")

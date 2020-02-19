@@ -12,7 +12,8 @@ private val unknownType = NodeType(
   inputs = persistentSetOf(),
   outputs = persistentSetOf(),
   globals = emptySet(),
-  code = emptyMap()
+  code = emptyMap(),
+  hidden = true
 )
 
 private fun input(joints: Joints, node: NodeId, input: InputId) = component {
