@@ -8,6 +8,7 @@ sealed class Cmd {}
 
 sealed class Msg {
   class SetLines(val lines: PersistentList<JointLine>) : Msg()
+  class SetSearch(val value: String) : Msg()
 
   // move
   class MoveNode(val node: NodeId, val point: Point) : Msg()
@@ -23,14 +24,15 @@ sealed class Msg {
 
   // data
   class PutNodeParam(val node: NodeId, val param: ParamId, val value: DataValue) : Msg()
+  class AddNode(val type: NodeTypeId, val offset: Point) : Msg()
 }
 
 data class NodeTypeId(val category: String, val name: String) {
   override fun toString() = "$category/$name"
 }
 
-data class NodeId(val value: String) {
-  override fun toString() = value
+data class NodeId(val value: Int) {
+  override fun toString() = value.toString()
 }
 
 data class ParamId(val value: String) {
@@ -143,5 +145,12 @@ data class Model(
   val lines: PersistentList<JointLine>,
   val move: ViewportMove?,
   val compiled: CompiledShader?,
-  val selection: Selection?
+  val selection: Selection?,
+  val search: String?
 )
+
+fun String.toNodeTypeId(): NodeTypeId? {
+  val parts = this.split("/")
+  if (parts.size != 2) return null
+  return NodeTypeId(parts[0], parts[1])
+}

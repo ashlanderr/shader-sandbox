@@ -5,8 +5,8 @@ import kotlinx.collections.immutable.persistentMapOf
 val INITIAL_NODES by lazy {
   entityMapOf(
     Node(
-      id = NodeId("1"),
-      type = NodeTypeId("Constants", "Color"),
+      id = NodeId(1),
+      type = NodeTypeId("Constant", "Color"),
       offset = Point(100.0, 100.0),
       params = persistentMapOf(
         ParamId("Value") to DataValue.Color(0.1f, 0.2f, 0.3f, 1.0f)
@@ -24,7 +24,7 @@ val INITIAL_NODES by lazy {
 val INITIAL_JOINTS by lazy {
   entityMapOf(
     Joint(
-      source = Pair(NodeId("1"), OutputId.All),
+      source = Pair(NodeId(1), OutputId.All),
       dest = Pair(RESULT_NODE_ID, RESULT_INPUT_COLOR)
     )
   )

@@ -13,8 +13,8 @@ import io.akryl.dom.html.Svg
 import io.akryl.redux.useDispatch
 import io.akryl.redux.useSelector
 import io.akryl.useEffect
-import kotlinx.collections.immutable.persistentSetOf
 import kotlinx.collections.immutable.toPersistentList
+import org.w3c.dom.DragEvent
 import org.w3c.dom.HTMLElement
 import org.w3c.dom.events.MouseEvent
 import react.ReactElement
@@ -22,18 +22,9 @@ import react_redux.Dispatch
 import kotlin.browser.document
 import kotlin.math.max
 
-private val unknownType = NodeType(
-  id = NodeTypeId("<Unknown>", "<Unknown>"),
-  params = entityMapOf(),
-  inputs = persistentSetOf(),
-  outputs = persistentSetOf(),
-  globals = emptySet(),
-  code = emptyMap()
-)
-
 private const val VIEWPORT_ID = "viewport"
 
-private val MouseEvent.viewportOffset: Point? get() {
+val MouseEvent.viewportOffset: Point? get() {
   val viewport = document.getElementById(VIEWPORT_ID) as? HTMLElement ?: return null
   val viewportBox = viewport.getBoundingClientRect()
   return Point(this.clientX - viewportBox.left, this.clientY - viewportBox.top)
@@ -44,6 +35,16 @@ fun viewport() = component {
   val dispatch = useDispatch<Msg>()
   val events = useViewportHotKeys(dispatch)
   useBuildLines(model)
+
+  fun onDragOver(e: DragEvent) {
+    e.preventDefault()
+  }
+
+  fun onDrop(e: DragEvent) {
+    val type = e.dataTransfer?.getData("text")?.toNodeTypeId() ?: return
+    val offset = e.viewportOffset ?: return
+    dispatch(Msg.AddNode(type, offset))
+  }
 
   Div(
     onKeyDown = events.onKeyDown,
@@ -75,7 +76,9 @@ fun viewport() = component {
       if (e.target === e.currentTarget) {
         dispatch(Msg.ClearSelection)
       }
-    }
+    },
+    onDragOver = ::onDragOver,
+    onDrop = ::onDrop
   )
 }
 
@@ -109,151 +112,19 @@ private fun nodes(model: Model): ReactElement<*> {
       left(0.px),
       top(0.px)
     ),
-    children = model.nodes.map { node(model, it.value) }
-  )
-}
-
-private fun input(joints: Joints, node: NodeId, input: InputId) = component {
-  val dispatch = useDispatch<Msg>()
-  val connected = Pair(node, input) in joints
-  val color = Color.white
-
-  Div(
-    css = listOf(
-      display.flex(),
-      alignItems.center(),
-      height(1.em),
-      cursor.pointer()
-    ),
-    children = listOf(
+    children = model.nodes.map {
       Div(
-        id = "node-$node-input-$input",
         css = listOf(
-          width(8.px),
-          height(8.px),
-          borderRadius(100.pct),
-          border.solid(1.px, color),
-          backgroundColor(if (connected) color else Color.black),
-          marginLeft(-8.px),
-          marginRight(4.px)
-        )
-      ),
-      Div(text = input.value)
-    ),
-    onMouseUp = { dispatch(Msg.StopOnInput(node, input)) }
-  )
-}
-
-private fun output(joints: Joints, node: NodeId, output: OutputId) = component {
-  val dispatch = useDispatch<Msg>()
-  val connected = joints.any { it.value.source.first == node && it.value.source.second == output }
-
-  val color = when (output) {
-    OutputId.All, OutputId.Alpha -> Color.white
-    OutputId.Red -> Color.red
-    OutputId.Green -> Color.lime
-    OutputId.Blue -> Color.blue
-  }
-
-  Div(
-    css = listOf(
-      display.flex(),
-      alignItems.center(),
-      height(1.em),
-      cursor.pointer()
-    ),
-    onMouseDown = { e ->
-      e.viewportOffset?.let { p ->
-        dispatch(Msg.MoveSourceJoint(
-          node = node,
-          output = output,
-          point = p
-        ))
-      }
-    },
-    children = listOf(
-      Div(
-        id = "node-$node-output-$output",
-        css = listOf(
-          width(8.px),
-          height(8.px),
-          borderRadius(100.pct),
-          border.solid(1.px, color),
-          backgroundColor(if (connected) color else Color.black),
-          marginLeft(16.px),
-          marginRight(-8.px)
-        )
+          position.absolute(),
+          left(0.px),
+          top(0.px)
+        ),
+        style = listOf(
+          transform.translate(it.value.offset.x.px, it.value.offset.y.px)
+        ),
+        child = node(model, it.value)
       )
-    )
-  )
-}
-
-private fun node(model: Model, node: Node) = component {
-  val type = model.types[node.type] ?: unknownType
-
-  Div(
-    css = listOf(
-      display.flex(),
-      flexDirection.column(),
-      position.absolute(),
-      backgroundColor(0xBBBBBB),
-      left(0.px),
-      top(0.px),
-      minWidth(150.px),
-      userSelect("none")
-    ),
-    style = listOf(
-      transform.translate(node.offset.x.px, node.offset.y.px)
-    ),
-    children = listOf(
-      nodeHeader(node.id, type),
-      nodeBody(model.joints, type, node)
-    )
-  )
-}
-
-private fun nodeHeader(node: NodeId, type: NodeType) = component {
-  val dispatch = useDispatch<Msg>()
-
-  Div(
-    css = listOf(
-      padding(vertical = 8.px, horizontal = 4.px),
-      textAlign.center(),
-      cursor.move()
-    ),
-    text = type.id.name,
-    onMouseDown = { e ->
-      e.viewportOffset?.let { dispatch(Msg.MoveNode(node, it)) }
     }
-  )
-}
-
-private fun nodeBody(joints: Joints, type: NodeType, node: Node) = component {
-  Div(
-    css = listOf(
-      display.flex(),
-      backgroundColor(0x505050),
-      color(0xFFFFFF),
-      justifyContent("space-between")
-    ),
-    children = listOf(
-      Div(
-        css = listOf(
-          display.flex(),
-          flexDirection.column(),
-          padding(vertical = 4.px, horizontal = 4.px)
-        ),
-        children = type.inputs.map { input(joints, node.id, it) }
-      ),
-      Div(
-        css = listOf(
-          display.flex(),
-          flexDirection.column(),
-          padding(vertical = 4.px, horizontal = 4.px)
-        ),
-        children = type.outputs.map { output(joints, node.id, it) }
-      )
-    )
   )
 }
 

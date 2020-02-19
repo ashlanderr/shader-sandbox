@@ -10,6 +10,8 @@ interface Entity<Id> {
 class EntityMap<Id, E : Entity<Id>> private constructor (private val map: PersistentMap<Id, E>) : Iterable<Map.Entry<Id, E>> {
   constructor (vararg items: E) : this(items.associateBy { it.component1() }.toPersistentMap())
 
+  val keys get() = map.keys
+  val values get() = map.values
   override fun iterator() = map.iterator()
   operator fun get(id: Id) = map[id]
   operator fun contains(id: Id) = id in map

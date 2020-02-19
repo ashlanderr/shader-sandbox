@@ -4,7 +4,7 @@ import app.DataType.Color
 import app.DataType.Scalar
 import kotlinx.collections.immutable.persistentSetOf
 
-val RESULT_NODE_ID = NodeId("result")
+val RESULT_NODE_ID = NodeId(-1)
 val RESULT_TYPE_ID = NodeTypeId("Global", "Result")
 val RESULT_INPUT_COLOR = InputId("Color")
 
@@ -13,7 +13,7 @@ const val NODE_RESULT_VAR = "#node_result"
 val NODE_TYPES = entityMapOf(
   // constants
   NodeType(
-    id = NodeTypeId("Constants", "Scalar"),
+    id = NodeTypeId("Constant", "Scalar"),
     params = entityMapOf(
       ParamType(
         id = ParamId("Value"),
@@ -30,7 +30,7 @@ val NODE_TYPES = entityMapOf(
     )
   ),
   NodeType(
-    id = NodeTypeId("Constants", "Color"),
+    id = NodeTypeId("Constant", "Color"),
     params = entityMapOf(
       ParamType(
         id = ParamId("Value"),
@@ -48,7 +48,7 @@ val NODE_TYPES = entityMapOf(
   ),
   // builders
   NodeType(
-    id = NodeTypeId("Builders", "Color"),
+    id = NodeTypeId("Builder", "Color"),
     params = entityMapOf(),
     inputs = persistentSetOf(
       InputId("R"),
@@ -66,7 +66,7 @@ val NODE_TYPES = entityMapOf(
   ),
   // globals
   NodeType(
-    id = NodeTypeId("Globals", "Time"),
+    id = NodeTypeId("Global", "Time"),
     params = entityMapOf(),
     inputs = persistentSetOf(),
     outputs = persistentSetOf(
@@ -80,7 +80,7 @@ val NODE_TYPES = entityMapOf(
     )
   ),
   NodeType(
-    id = NodeTypeId("Globals", "Position"),
+    id = NodeTypeId("Global", "Position"),
     params = entityMapOf(),
     inputs = persistentSetOf(),
     outputs = persistentSetOf(
@@ -105,7 +105,7 @@ val NODE_TYPES = entityMapOf(
   ),
   // math
   NodeType(
-    id = NodeTypeId("Math", "add"),
+    id = NodeTypeId("Math", "Add"),
     params = entityMapOf(),
     inputs = persistentSetOf(
       InputId("A"),
@@ -210,7 +210,7 @@ val NODE_TYPES = entityMapOf(
   ),
   // vectors
   NodeType(
-    id = NodeTypeId("Vectors", "Distance"),
+    id = NodeTypeId("Vector", "Distance"),
     params = entityMapOf(),
     inputs = persistentSetOf(
       InputId("A"),

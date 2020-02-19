@@ -55,8 +55,8 @@ private fun compileToString(compiled: CompiledCache, color: Joint): Result<List<
         ?: return Err(listOf(CompilerError(RESULT_NODE_ID, "Color output not found")))
 
       val resultLine = when (output.type) {
-        DataType.Scalar -> "gl_FragColor = vec4(${output.variable});"
-        DataType.Color -> "gl_FragColor = ${output.variable};"
+        DataType.Scalar -> "gl_FragColor = vec4(${output.variable}, ${output.variable}, ${output.variable}, 1.0);"
+        DataType.Color -> "gl_FragColor = vec4(${output.variable}.rgb, 1.0);"
       }
 
       val successfullyCompiled = compiled.values

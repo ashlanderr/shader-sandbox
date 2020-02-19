@@ -3,6 +3,7 @@ package app
 import io.akryl.redux.MsgAction
 import io.akryl.redux.createStore
 import kotlinx.collections.immutable.persistentListOf
+import kotlinx.collections.immutable.persistentMapOf
 import redux.StoreEnhancer
 
 val store by lazy {
@@ -15,7 +16,8 @@ val store by lazy {
         lines = persistentListOf(),
         move = null,
         compiled = compile(NODE_TYPES, INITIAL_NODES, INITIAL_JOINTS).orElse { null },
-        selection = null
+        selection = null,
+        search = null
       ),
       null
     ),
@@ -29,21 +31,32 @@ val store by lazy {
 private fun update(model: Model, msg: Msg): Pair<Model, Cmd?> {
   return when (msg) {
     is Msg.SetLines -> setLines(model, msg)
+    is Msg.SetSearch -> setSearch(model, msg)
     is Msg.MoveNode -> moveNode(model, msg)
     is Msg.MoveSourceJoint -> moveSourceJoint(model, msg)
     is Msg.StopOnInput -> stopOnInput(model, msg)
     is Msg.StopOnViewport -> stopOnViewport(model)
     is Msg.DoMove -> doMove(model, msg)
-    is Msg.PutNodeParam -> putNodeParam(model, msg)
     is Msg.SelectJoint -> selectJoint(model, msg)
     is Msg.ClearSelection -> clearSelection(model)
     is Msg.DeleteSelected -> deleteSelected(model)
+    is Msg.PutNodeParam -> putNodeParam(model, msg)
+    is Msg.AddNode -> addNode(model, msg)
   }
 }
 
 private fun setLines(model: Model, msg: Msg.SetLines): Pair<Model, Nothing?> {
   return Pair(
     model.copy(lines = msg.lines),
+    null
+  )
+}
+
+fun setSearch(model: Model, msg: Msg.SetSearch): Pair<Model, Cmd?> {
+  val search = msg.value.takeIf { it.isNotBlank() }
+
+  return Pair(
+    model.copy(search = search),
     null
   )
 }
@@ -140,18 +153,6 @@ private fun triggerCompile(model: Model): Pair<Model, Cmd?> {
   return Pair(newModel, null)
 }
 
-private fun putNodeParam(model: Model, msg: Msg.PutNodeParam): Pair<Model, Cmd?> {
-  val node = model.nodes[msg.node] ?: return Pair(model, null)
-  val newModel = model.copy(
-    nodes = model.nodes.put(
-      node.copy(
-        params = node.params.put(msg.param, msg.value)
-      )
-    )
-  )
-  return triggerCompile(newModel)
-}
-
 private fun selectJoint(model: Model, msg: Msg.SelectJoint): Pair<Model, Cmd?> {
   return Pair(
     model.copy(selection = Selection.Joint(msg.joint)),
@@ -177,5 +178,35 @@ fun deleteSelected(model: Model): Pair<Model, Cmd?> {
       model
   }
 
+  return triggerCompile(newModel)
+}
+
+private fun putNodeParam(model: Model, msg: Msg.PutNodeParam): Pair<Model, Cmd?> {
+  val node = model.nodes[msg.node] ?: return Pair(model, null)
+  val newModel = model.copy(
+    nodes = model.nodes.put(
+      node.copy(
+        params = node.params.put(msg.param, msg.value)
+      )
+    )
+  )
+  return triggerCompile(newModel)
+}
+
+private fun addNode(model: Model, msg: Msg.AddNode): Pair<Model, Cmd?> {
+  val lastId = model.nodes.keys
+    .map { it.value }
+    .max()
+    ?: 0
+
+  val node = Node(
+    id = NodeId(lastId + 1),
+    type = msg.type,
+    offset = msg.offset,
+    params = persistentMapOf()
+  )
+  val newModel = model.copy(
+    nodes = model.nodes.put(node)
+  )
   return triggerCompile(newModel)
 }
