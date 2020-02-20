@@ -24,6 +24,7 @@ import react_redux.Dispatch
 import kotlin.browser.document
 import kotlin.experimental.and
 import kotlin.math.max
+import kotlin.math.min
 
 private const val MOUSE_BUTTON_MIDDLE = 4.toShort()
 
@@ -112,28 +113,73 @@ fun viewport() = component {
   )
 }
 
-private fun lines(model: Model): ReactElement<*> {
-  val selection = model.selection as? Selection.Joint
+private data class LinesRect(
+  val left: Double,
+  val top: Double,
+  val width: Double,
+  val height: Double
+)
 
-  return Svg(
-    css = listOf(
-      position.absolute(),
-      pointerEvents("none"),
-      left(0.px),
-      top(0.px),
-      width(1000.px),
-      height(1000.px)
-    ),
-    children = listOf(
-      when (val move = model.move) {
-        is ViewportMove.SourceJoint -> pointLine(move.begin, move.end)
-        is ViewportMove.Node -> null
-        is ViewportMove.Viewport -> null
-        null -> null
-      },
-      *For(model.lines) { jointLine(selection?.value == it.joint, it) }
+private const val LINES_PADDING = 16.0
+
+private fun computeLinesRect(model: Model): LinesRect {
+  var points = model.lines.flatMap {
+    listOf(
+      WorldPoint(it.line.x1, it.line.y1),
+      WorldPoint(it.line.x4, it.line.y4)
     )
-  )
+  }
+  points += when (val move = model.move) {
+    is ViewportMove.SourceJoint -> listOf(move.begin, move.end)
+    is ViewportMove.Node -> emptyList()
+    is ViewportMove.Viewport -> emptyList()
+    null -> emptyList()
+  }
+
+  var left = Double.POSITIVE_INFINITY
+  var top = Double.POSITIVE_INFINITY
+  var right = Double.NEGATIVE_INFINITY
+  var bottom = Double.NEGATIVE_INFINITY
+
+  for (p in points) {
+    left = min(left, p.x)
+    top = min(top, p.y)
+    right = max(right, p.x)
+    bottom = max(bottom, p.y)
+  }
+
+  return LinesRect(left, top, right - left, bottom - top)
+}
+
+private fun lines(model: Model) = component {
+  if (model.lines.isNotEmpty()) {
+    val selection = model.selection as? Selection.Joint
+    val rect = computeLinesRect(model)
+
+    Svg(
+      css = listOf(
+        position.absolute(),
+        pointerEvents("none")
+      ),
+      style = listOf(
+        left((rect.left - LINES_PADDING).px),
+        top((rect.top - LINES_PADDING).px),
+        width((rect.width + LINES_PADDING * 2).px),
+        height((rect.height + LINES_PADDING * 2).px)
+      ),
+      children = listOf(
+        when (val move = model.move) {
+          is ViewportMove.SourceJoint -> pointLine(rect, move.begin, move.end)
+          is ViewportMove.Node -> null
+          is ViewportMove.Viewport -> null
+          null -> null
+        },
+        *For(model.lines) { jointLine(rect, selection?.value == it.joint, it) }
+      )
+    )
+  } else {
+    null
+  }
 }
 
 private fun nodes(model: Model): ReactElement<*> {
@@ -159,9 +205,11 @@ private fun nodes(model: Model): ReactElement<*> {
   )
 }
 
-private fun jointLine(selected: Boolean, jointLine: JointLine) = component {
+private fun jointLine(linesRect: LinesRect, selected: Boolean, jointLine: JointLine) = component {
   val dispatch = useDispatch<Msg>()
   val line = jointLine.line
+  val dx = -linesRect.left + LINES_PADDING
+  val dy = -linesRect.top + LINES_PADDING
 
   Path(
     css = listOf(
@@ -174,13 +222,15 @@ private fun jointLine(selected: Boolean, jointLine: JointLine) = component {
         strokeWidth("4")
       )
     ),
-    d = "M${line.x1} ${line.y1} C${line.x2} ${line.y2}, ${line.x3} ${line.y3}, ${line.x4} ${line.y4}",
+    d = "M${line.x1 + dx} ${line.y1 + dy} C${line.x2 + dx} ${line.y2 + dy}, ${line.x3 + dx} ${line.y3 + dy}, ${line.x4 + dx} ${line.y4 + dy}",
     onClick = { dispatch(Msg.SelectJoint(jointLine.joint)) }
   )
 }
 
-private fun pointLine(a: WorldPoint, b: WorldPoint) = component {
+private fun pointLine(linesRect: LinesRect, a: WorldPoint, b: WorldPoint) = component {
   val line = lineFromPoints(a, b)
+  val dx = -linesRect.left + LINES_PADDING
+  val dy = -linesRect.top + LINES_PADDING
 
   Path(
     css = listOf(
@@ -188,7 +238,7 @@ private fun pointLine(a: WorldPoint, b: WorldPoint) = component {
       strokeWidth("2"),
       fill("transparent")
     ),
-    d = "M${line.x1} ${line.y1} C${line.x2} ${line.y2}, ${line.x3} ${line.y3}, ${line.x4} ${line.y4}"
+    d = "M${line.x1 + dx} ${line.y1 + dy} C${line.x2 + dx} ${line.y2 + dy}, ${line.x3 + dx} ${line.y3 + dy}, ${line.x4 + dx} ${line.y4 + dy}"
   )
 }
 
