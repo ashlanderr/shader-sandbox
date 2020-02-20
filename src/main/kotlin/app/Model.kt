@@ -9,9 +9,9 @@ sealed class Msg {
   class SetSearch(val value: String) : Msg()
 
   // move
-  class MoveNode(val node: NodeId, val point: Point) : Msg()
-  class MoveSourceJoint(val node: NodeId, val output: OutputId, val point: Point) : Msg()
-  class DoMove(val point: Point) : Msg()
+  class MoveNode(val node: NodeId, val point: WorldPoint) : Msg()
+  class MoveSourceJoint(val node: NodeId, val output: OutputId, val point: WorldPoint) : Msg()
+  class DoMove(val point: WorldPoint) : Msg()
   class StopOnInput(val node: NodeId, val input: InputId) : Msg()
   object StopOnViewport : Msg()
 
@@ -23,7 +23,7 @@ sealed class Msg {
 
   // data
   class PutNodeParam(val node: NodeId, val param: ParamId, val value: DataValue) : Msg()
-  class AddNode(val type: NodeTypeId, val offset: Point) : Msg()
+  class AddNode(val type: NodeTypeId, val offset: WorldPoint) : Msg()
 }
 
 data class NodeTypeId(val category: String, val name: String) {
@@ -70,11 +70,6 @@ sealed class DataValue {
   }
 }
 
-data class Point(
-  val x: Double,
-  val y: Double
-)
-
 data class Joint(
   val dest: Pair<NodeId, InputId>,
   val source: Pair<NodeId, OutputId>
@@ -83,7 +78,7 @@ data class Joint(
 data class Node(
   val id: NodeId,
   val type: NodeTypeId,
-  val offset: Point,
+  val offset: WorldPoint,
   val params: PersistentMap<ParamId, DataValue>
 ) : Entity<NodeId>
 
@@ -121,14 +116,14 @@ data class Line(
 sealed class ViewportMove {
   data class Node(
     val id: NodeId,
-    val point: Point
+    val point: WorldPoint
   ) : ViewportMove()
 
   data class SourceJoint(
     val node: NodeId,
     val output: OutputId,
-    val begin: Point,
-    val end: Point
+    val begin: WorldPoint,
+    val end: WorldPoint
   ) : ViewportMove()
 }
 
@@ -169,6 +164,6 @@ val UNKNOWN_TYPE = NodeType(
 val UNKNOWN_NODE = Node(
   id = NodeId(-1),
   params = persistentMapOf(),
-  offset = Point(0.0, 0.0),
+  offset = WorldPoint(0.0, 0.0),
   type = UNKNOWN_TYPE.id
 )

@@ -16,19 +16,10 @@ import io.akryl.useEffect
 import kotlinx.collections.immutable.toPersistentList
 import org.w3c.dom.DragEvent
 import org.w3c.dom.HTMLElement
-import org.w3c.dom.events.MouseEvent
 import react.ReactElement
 import react_redux.Dispatch
 import kotlin.browser.document
 import kotlin.math.max
-
-private const val VIEWPORT_ID = "viewport"
-
-val MouseEvent.viewportOffset: Point? get() {
-  val viewport = document.getElementById(VIEWPORT_ID) as? HTMLElement ?: return null
-  val viewportBox = viewport.getBoundingClientRect()
-  return Point(this.clientX - viewportBox.left, this.clientY - viewportBox.top)
-}
 
 fun viewport() = component {
   val model = useSelector<Model>()
@@ -42,7 +33,7 @@ fun viewport() = component {
 
   fun onDrop(e: DragEvent) {
     val type = e.dataTransfer?.getData("text")?.toNodeTypeId() ?: return
-    val offset = e.viewportOffset ?: return
+    val offset = e.clientPoint.toWorld(model) ?: return
     dispatch(Msg.AddNode(type, offset))
   }
 
@@ -66,8 +57,10 @@ fun viewport() = component {
       nodes(model)
     ),
     onMouseMove = { e ->
-      if (model.move != null)
-        e.viewportOffset?.let { dispatch(Msg.DoMove(it)) }
+      if (model.move != null) {
+        val point = e.clientPoint.toWorld(model)
+        point?.let { dispatch(Msg.DoMove(it)) }
+      }
     },
     onMouseUp = {
       dispatch(Msg.StopOnViewport)
@@ -148,7 +141,7 @@ private fun jointLine(selected: Boolean, jointLine: JointLine) = component {
   )
 }
 
-private fun pointLine(a: Point, b: Point) = component {
+private fun pointLine(a: WorldPoint, b: WorldPoint) = component {
   val line = lineFromPoints(a, b)
 
   Path(
@@ -161,7 +154,7 @@ private fun pointLine(a: Point, b: Point) = component {
   )
 }
 
-private fun lineFromPoints(a: Point, b: Point): Line {
+private fun lineFromPoints(a: WorldPoint, b: WorldPoint): Line {
   val x1 = a.x
   val y1 = a.y
   val x4 = b.x
@@ -190,14 +183,15 @@ private fun ComponentScope.useBuildLines(model: Model) {
       val inputBox = input.getBoundingClientRect()
       val outputBox = output.getBoundingClientRect()
 
-      val p1 = Point(
-        outputBox.left - viewportBox.left + outputBox.width / 2,
-        outputBox.top - viewportBox.top + outputBox.height / 2
-      )
-      val p2 = Point(
-        inputBox.left - viewportBox.left + inputBox.width / 2,
-        inputBox.top - viewportBox.top + inputBox.height / 2
-      )
+      val p1 = ClientPoint(
+        outputBox.left + outputBox.width / 2,
+        outputBox.top + outputBox.height / 2
+      ).toWorld(viewportBox, model)
+
+      val p2 = ClientPoint(
+        inputBox.left + inputBox.width / 2,
+        inputBox.top + inputBox.height / 2
+      ).toWorld(viewportBox, model)
 
       lines.add(JointLine(joint, lineFromPoints(p1, p2)))
     }

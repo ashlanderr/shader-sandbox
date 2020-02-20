@@ -86,7 +86,7 @@ private fun categories(model: Model) = component {
       id = NodeId(-1),
       type = type,
       params = persistentMapOf(),
-      offset = Point(0.0, 0.0)
+      offset = WorldPoint(0.0, 0.0)
     )
     val tree = Div(
       id = "types-catalogue-drag-image",

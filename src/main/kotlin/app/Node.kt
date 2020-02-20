@@ -36,9 +36,11 @@ private fun input(joints: Joints, node: NodeId, input: InputId) = component {
   )
 }
 
-private fun output(joints: Joints, node: NodeId, output: OutputId) = component {
+private fun output(model: Model, node: NodeId, output: OutputId) = component {
   val dispatch = useDispatch<Msg>()
-  val connected = joints.any { it.value.source.first == node && it.value.source.second == output }
+
+  val connected = model.joints
+    .any { it.value.source.first == node && it.value.source.second == output }
 
   val color = when (output) {
     OutputId.All, OutputId.Alpha -> Color.white
@@ -55,7 +57,7 @@ private fun output(joints: Joints, node: NodeId, output: OutputId) = component {
       cursor.pointer()
     ),
     onMouseDown = { e ->
-      e.viewportOffset?.let { p ->
+      e.clientPoint.toWorld(model)?.let { p ->
         dispatch(Msg.MoveSourceJoint(
           node = node,
           output = output,
@@ -93,7 +95,7 @@ fun node(model: Model, node: Node) = component {
     ),
     children = listOf(
       nodeHeader(model, node.id, type),
-      nodeBody(model.joints, type, node)
+      nodeBody(model, type, node)
     )
   )
 }
@@ -113,13 +115,15 @@ private fun nodeHeader(model: Model, node: NodeId, type: NodeType) = component {
     onMouseDown = { e ->
       if (e.target === e.currentTarget) {
         dispatch(Msg.SelectNode(node))
-        e.viewportOffset?.let { dispatch(Msg.MoveNode(node, it)) }
+        e.clientPoint.toWorld(model)?.let {
+          dispatch(Msg.MoveNode(node, it))
+        }
       }
     }
   )
 }
 
-private fun nodeBody(joints: Joints, type: NodeType, node: Node) = component {
+private fun nodeBody(model: Model, type: NodeType, node: Node) = component {
   Div(
     css = listOf(
       display.flex(),
@@ -134,7 +138,7 @@ private fun nodeBody(joints: Joints, type: NodeType, node: Node) = component {
           flexDirection.column(),
           padding(vertical = 4.px, horizontal = 4.px)
         ),
-        children = type.inputs.map { input(joints, node.id, it) }
+        children = type.inputs.map { input(model.joints, node.id, it) }
       ),
       Div(
         css = listOf(
@@ -142,7 +146,7 @@ private fun nodeBody(joints: Joints, type: NodeType, node: Node) = component {
           flexDirection.column(),
           padding(vertical = 4.px, horizontal = 4.px)
         ),
-        children = type.outputs.map { output(joints, node.id, it) }
+        children = type.outputs.map { output(model, node.id, it) }
       )
     )
   )

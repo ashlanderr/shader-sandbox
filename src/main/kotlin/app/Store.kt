@@ -113,7 +113,7 @@ private fun doMove(model: Model, msg: Msg.DoMove): Pair<Model, Nothing?> {
       val dy = msg.point.y - move.point.y
 
       val node = model.nodes[move.id] ?: return Pair(model, null)
-      val newOffset = Point(node.offset.x + dx, node.offset.y + dy)
+      val newOffset = WorldPoint(node.offset.x + dx, node.offset.y + dy)
       val newNode = node.copy(offset = newOffset)
       val newNodes = model.nodes.put(newNode)
 

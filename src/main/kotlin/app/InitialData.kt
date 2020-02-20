@@ -7,7 +7,7 @@ val INITIAL_NODES by lazy {
     Node(
       id = NodeId(1),
       type = NodeTypeId("Constant", "Color"),
-      offset = Point(100.0, 100.0),
+      offset = WorldPoint(100.0, 100.0),
       params = persistentMapOf(
         ParamId("Value") to DataValue.Color(0.1f, 0.2f, 0.3f, 1.0f)
       )
@@ -15,7 +15,7 @@ val INITIAL_NODES by lazy {
     Node(
       id = RESULT_NODE_ID,
       type = RESULT_TYPE_ID,
-      offset = Point(300.0, 100.0),
+      offset = WorldPoint(300.0, 100.0),
       params = persistentMapOf()
     )
   )
