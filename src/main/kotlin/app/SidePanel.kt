@@ -77,7 +77,7 @@ private fun categories(model: Model) = component {
   fun onDrag(type: NodeTypeId, e: DragEvent) {
     e.dataTransfer?.setData("text", type.toString())
 
-    val image = document.getElementById("types-catalogue-drag-image") ?: run {
+    val image = document.getElementById("types-catalogue-drag-image")?.parentElement ?: run {
       document.createElement("div").also {
         document.body?.appendChild(it)
       }
