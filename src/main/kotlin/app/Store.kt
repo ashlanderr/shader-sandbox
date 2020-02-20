@@ -5,6 +5,8 @@ import io.akryl.redux.createStore
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toPersistentMap
 import redux.StoreEnhancer
+import kotlin.math.max
+import kotlin.math.min
 
 val store by lazy {
   createStore(
@@ -17,7 +19,9 @@ val store by lazy {
         move = null,
         compiled = compile(NODE_TYPES, INITIAL_NODES, INITIAL_JOINTS).orElse { null },
         selection = null,
-        search = null
+        search = null,
+        offset = WorldPoint(0.0, 0.0),
+        scale = 1.0
       ),
       null
     ),
@@ -32,6 +36,8 @@ private fun update(model: Model, msg: Msg): Pair<Model, Cmd?> {
   return when (msg) {
     is Msg.SetLines -> setLines(model, msg)
     is Msg.SetSearch -> setSearch(model, msg)
+    is Msg.MoveViewport -> moveViewport(model, msg)
+    is Msg.ScaleViewport -> scaleViewport(model, msg)
     is Msg.MoveNode -> moveNode(model, msg)
     is Msg.MoveSourceJoint -> moveSourceJoint(model, msg)
     is Msg.StopOnInput -> stopOnInput(model, msg)
@@ -58,6 +64,28 @@ fun setSearch(model: Model, msg: Msg.SetSearch): Pair<Model, Cmd?> {
 
   return Pair(
     model.copy(search = search),
+    null
+  )
+}
+
+private fun moveViewport(model: Model, msg: Msg.MoveViewport): Pair<Model, Nothing?> {
+  return Pair(
+    model.copy(move = ViewportMove.Viewport(msg.point)),
+    null
+  )
+}
+
+private fun scaleViewport(model: Model, msg: Msg.ScaleViewport): Pair<Model, Nothing?> {
+  val newScale = max(0.1, min(msg.factor * model.scale, 4.0))
+
+  return Pair(
+    model.copy(
+      scale = newScale,
+      offset = WorldPoint(
+        (msg.center.x + model.offset.x) * model.scale / newScale - msg.center.x,
+        (msg.center.y + model.offset.y) * model.scale / newScale - msg.center.y
+      )
+    ),
     null
   )
 }
@@ -91,6 +119,9 @@ fun stopOnInput(model: Model, msg: Msg.StopOnInput): Pair<Model, Cmd?> {
       triggerCompile(newModel)
     }
 
+    is ViewportMove.Viewport ->
+      Pair(model, null)
+
     is ViewportMove.Node ->
       Pair(model, null)
 
@@ -121,6 +152,21 @@ private fun doMove(model: Model, msg: Msg.DoMove): Pair<Model, Nothing?> {
 
       Pair(
         model.copy(nodes = newNodes, move = newMove),
+        null
+      )
+    }
+
+    is ViewportMove.Viewport -> {
+      val dx = msg.point.x - move.point.x
+      val dy = msg.point.y - move.point.y
+
+      Pair(
+        model.copy(
+          offset = WorldPoint(
+            model.offset.x + dx,
+            model.offset.y + dy
+          )
+        ),
         null
       )
     }

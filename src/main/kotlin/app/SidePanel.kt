@@ -15,6 +15,7 @@ import org.w3c.dom.DragEvent
 import org.w3c.dom.HTMLInputElement
 import react_dom.ReactDom
 import kotlin.browser.document
+import kotlin.math.roundToInt
 
 fun sidePanel() = component {
   val model = useSelector<Model>()
@@ -93,16 +94,22 @@ private fun categories(model: Model) = component {
       css = listOf(
         position.fixed(),
         left(-10000.px),
-        top(-10000.px),
-        padding(16.px)
+        top(-10000.px)
       ),
-      child = store.provider(listOf(
-        node(model, node)
-      ))
+      child = Div(
+        style = listOf(
+          transformOrigin("0 0"),
+          transform.scale(model.scale),
+          padding(16.px)
+        ),
+        child = store.provider(listOf(
+          node(model, node)
+        ))
+      )
     )
     ReactDom.render(tree, image)
 
-    e.dataTransfer?.setDragImage(image, 16, 16)
+    e.dataTransfer?.setDragImage(image, (16 * model.scale).roundToInt(), (16 * model.scale).roundToInt())
   }
 
   Div(

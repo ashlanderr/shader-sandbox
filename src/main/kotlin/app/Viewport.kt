@@ -16,10 +16,16 @@ import io.akryl.useEffect
 import kotlinx.collections.immutable.toPersistentList
 import org.w3c.dom.DragEvent
 import org.w3c.dom.HTMLElement
+import org.w3c.dom.events.Event
+import org.w3c.dom.events.MouseEvent
+import org.w3c.dom.events.WheelEvent
 import react.ReactElement
 import react_redux.Dispatch
 import kotlin.browser.document
+import kotlin.experimental.and
 import kotlin.math.max
+
+private const val MOUSE_BUTTON_MIDDLE = 4.toShort()
 
 fun viewport() = component {
   val model = useSelector<Model>()
@@ -35,6 +41,38 @@ fun viewport() = component {
     val type = e.dataTransfer?.getData("text")?.toNodeTypeId() ?: return
     val offset = e.clientPoint.toWorld(model) ?: return
     dispatch(Msg.AddNode(type, offset))
+  }
+
+  fun onMouseDown(e: MouseEvent) {
+    if ((e.buttons and MOUSE_BUTTON_MIDDLE) == MOUSE_BUTTON_MIDDLE) {
+      e.clientPoint.toWorld(model)?.let {
+        dispatch(Msg.MoveViewport(it))
+      }
+    }
+  }
+
+  fun onMouseMove(e: MouseEvent) {
+    if (model.move != null) {
+      val point = e.clientPoint.toWorld(model)
+      point?.let { dispatch(Msg.DoMove(it)) }
+    }
+  }
+
+  fun onClick(e: Event) {
+    if (e.target === e.currentTarget) {
+      dispatch(Msg.ClearSelection)
+    }
+  }
+
+  fun onWheel(e: WheelEvent) {
+    val point = e.clientPoint.toWorld(model) ?: return
+    val speed = 1.3
+    val factor = if (e.deltaY < 0) {
+      speed
+    } else {
+      1.0 / speed
+    }
+    dispatch(Msg.ScaleViewport(factor, point))
   }
 
   Div(
@@ -53,25 +91,24 @@ fun viewport() = component {
       overflow.hidden()
     ),
     child = Div(
-      lines(model),
-      nodes(model)
+      style = listOf(
+        transformOrigin("0 0"),
+        transform
+          .scale(model.scale)
+          .translate(model.offset.x.px, model.offset.y.px)
+      ),
+      children = listOf(
+        lines(model),
+        nodes(model)
+      )
     ),
-    onMouseMove = { e ->
-      if (model.move != null) {
-        val point = e.clientPoint.toWorld(model)
-        point?.let { dispatch(Msg.DoMove(it)) }
-      }
-    },
-    onMouseUp = {
-      dispatch(Msg.StopOnViewport)
-    },
-    onClick = { e ->
-      if (e.target === e.currentTarget) {
-        dispatch(Msg.ClearSelection)
-      }
-    },
+    onMouseMove = ::onMouseMove,
+    onMouseDown = ::onMouseDown,
+    onMouseUp = { dispatch(Msg.StopOnViewport) },
+    onClick = ::onClick,
     onDragOver = ::onDragOver,
-    onDrop = ::onDrop
+    onDrop = ::onDrop,
+    onWheel = ::onWheel
   )
 }
 
@@ -84,13 +121,14 @@ private fun lines(model: Model): ReactElement<*> {
       pointerEvents("none"),
       left(0.px),
       top(0.px),
-      width(100.pct),
-      height(100.pct)
+      width(1000.px),
+      height(1000.px)
     ),
     children = listOf(
       when (val move = model.move) {
         is ViewportMove.SourceJoint -> pointLine(move.begin, move.end)
         is ViewportMove.Node -> null
+        is ViewportMove.Viewport -> null
         null -> null
       },
       *For(model.lines) { jointLine(selection?.value == it.joint, it) }

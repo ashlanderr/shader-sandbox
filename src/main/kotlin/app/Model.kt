@@ -9,6 +9,8 @@ sealed class Msg {
   class SetSearch(val value: String) : Msg()
 
   // move
+  class MoveViewport(val point: WorldPoint) : Msg()
+  class ScaleViewport(val factor: Double, val center: WorldPoint) : Msg()
   class MoveNode(val node: NodeId, val point: WorldPoint) : Msg()
   class MoveSourceJoint(val node: NodeId, val output: OutputId, val point: WorldPoint) : Msg()
   class DoMove(val point: WorldPoint) : Msg()
@@ -114,6 +116,10 @@ data class Line(
 )
 
 sealed class ViewportMove {
+  data class Viewport(
+    val point: WorldPoint
+  ) : ViewportMove()
+
   data class Node(
     val id: NodeId,
     val point: WorldPoint
@@ -142,7 +148,9 @@ data class Model(
   val move: ViewportMove?,
   val compiled: CompiledShader?,
   val selection: Selection?,
-  val search: String?
+  val search: String?,
+  val offset: WorldPoint,
+  val scale: Double
 )
 
 fun String.toNodeTypeId(): NodeTypeId? {

@@ -21,8 +21,10 @@ data class ClientPoint(
 )
 
 fun ViewPoint.toWorld(model: Model): WorldPoint {
-  // todo transform
-  return WorldPoint(x, y)
+  return WorldPoint(
+    x / model.scale - model.offset.x,
+    y / model.scale - model.offset.y
+  )
 }
 
 val MouseEvent.clientPoint get() = ClientPoint(this.clientX.toDouble(), this.clientY.toDouble())
