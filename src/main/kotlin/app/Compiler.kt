@@ -50,22 +50,11 @@ private data class ConcatNodes(
   val code: List<String> = emptyList()
 )
 
-private fun concatNodes(compiled: CompiledCache, node: CompiledNode): ConcatNodes {
+private fun concatDependencies(compiled: CompiledCache, node: CompiledNode): List<CompiledNode> {
   val inputs = node.dependencies
-    .mapNotNull { compiled[it]?.orElse { null } }
-    .map { concatNodes(compiled, it) }
-
-  val self = ConcatNodes(
-    globals = node.globals,
-    code = node.code
-  )
-
-  return (inputs + self).fold(ConcatNodes()) { acc, n ->
-    ConcatNodes(
-      globals = acc.globals + n.globals,
-      code = acc.code + n.code
-    )
-  }
+    .mapNotNull { d -> compiled[d]?.orElse { null }?.let { Pair(d, it) } }
+    .flatMap { concatDependencies(compiled, it.second) }
+  return inputs + node
 }
 
 private fun compileToString(compiled: CompiledCache, nodeId: NodeId, node: CompiledResult): CompiledShaderResult {
@@ -79,7 +68,13 @@ private fun compileToString(compiled: CompiledCache, nodeId: NodeId, node: Compi
         DataType.Color -> "gl_FragColor = vec4(${output.variable}.rgb, 1.0);"
       }
 
-      val (globals, code) = concatNodes(compiled, node.value)
+      val nodes = concatDependencies(compiled, node.value).distinct()
+      val (globals, code) = nodes.fold(ConcatNodes()) { acc, n ->
+        ConcatNodes(
+          globals = acc.globals + n.globals,
+          code = acc.code + n.code
+        )
+      }
 
       val lines = listOf(
         "#version 100",
