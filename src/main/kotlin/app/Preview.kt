@@ -6,7 +6,9 @@ import io.akryl.dom.html.Canvas
 import io.akryl.useEffect
 import io.akryl.useRef
 import org.khronos.webgl.Float32Array
+import org.w3c.dom.CanvasRenderingContext2D
 import org.w3c.dom.HTMLCanvasElement
+import kotlin.browser.document
 import kotlin.browser.window
 
 private const val VERTEX_SHADER = """
@@ -139,29 +141,75 @@ private class Renderer private constructor(
   }
 }
 
-fun mainPreview(compiled: CompiledShader?) = component {
-  val ref = useRef<HTMLCanvasElement?>(null)
+private val offscreenCanvas by lazy {
+  val canvas = document.createElement("canvas") as HTMLCanvasElement
+  canvas.width = 128
+  canvas.height = 128
+  canvas
+}
 
-  useEffect(listOf(compiled)) {
-    ref.current?.let { canvas ->
-      val fragmentSource = compiled?.lines?.joinToString("\n") ?: DEFAULT_FRAGMENT_SHADER
-      when (val renderer = Renderer.create(canvas, fragmentSource)) {
-        is Ok -> {
-          fun render() {
-            window.requestAnimationFrame { render() }
-            renderer.value.render()
-          }
-          render()
-        }
-        is Err -> console.error(renderer.error)
+fun smallShaderPreview(nodeId: NodeId) = component {
+  Canvas(
+    id = "node-shader-preview-$nodeId",
+    width = 128,
+    height = 128
+  )
+}
+
+private var renderHandle: Int? = null
+private var renderersHandle: List<Pair<NodeId, Renderer>>? = null
+private var largeRendererHandle: Renderer? = null
+
+fun shaderPreview(nodes: CompiledNodes) = component {
+  // todo proper dispose
+
+  val largeRef = useRef<HTMLCanvasElement?>(null)
+
+  useEffect(listOf(nodes)) {
+    renderHandle?.let { window.cancelAnimationFrame(it) }
+    renderHandle = null
+    renderersHandle?.let { it.forEach { r -> r.second.dispose() } }
+    renderersHandle = null
+    largeRendererHandle?.dispose()
+    largeRendererHandle = null
+
+    val renderers = nodes
+      .mapNotNull { Pair(it.key, it.value.orElse { null }) }
+      .mapNotNull { (id, node) ->
+        Renderer.create(offscreenCanvas, node?.lines?.joinToString("\n") ?: DEFAULT_FRAGMENT_SHADER)
+          .orElse { console.error(it); null }
+          ?.let { Pair(id, it) }
       }
+    renderersHandle = renderers
+
+    val resultSource = nodes[RESULT_NODE_ID]
+      ?.let { it.orElse { null } }
+      ?.lines
+      ?.joinToString("\n")
+      ?: DEFAULT_FRAGMENT_SHADER
+
+    val largeRenderer = largeRef.current
+      ?.let { Renderer.create(it, resultSource) }
+      ?.orElse { console.error(it); null }
+    largeRendererHandle = largeRenderer
+
+    fun render() {
+      renderHandle = window.requestAnimationFrame { render() }
+      for ((nodeId, renderer) in renderers) {
+        val canvas = document.getElementById("node-shader-preview-$nodeId") as? HTMLCanvasElement ?: continue
+        val ctx = canvas.getContext("2d") as? CanvasRenderingContext2D ?: continue
+        renderer.render()
+        ctx.drawImage(offscreenCanvas, 0.0, 0.0)
+      }
+      largeRenderer?.render()
     }
-    // todo dispose
+
+    render()
   }
 
   Canvas(
     width = 512,
     height = 512,
-    ref = ref
+    ref = largeRef
   )
 }

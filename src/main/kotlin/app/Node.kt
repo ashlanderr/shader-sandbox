@@ -3,6 +3,7 @@ package app
 import io.akryl.component
 import io.akryl.dom.css.properties.*
 import io.akryl.dom.html.Div
+import io.akryl.dom.html.For
 import io.akryl.redux.useDispatch
 
 private fun input(joints: Joints, node: NodeId, input: InputId) = component {
@@ -74,7 +75,6 @@ private fun output(model: Model, node: NodeId, output: OutputId) = component {
           borderRadius(100.pct),
           border.solid(1.px, color),
           backgroundColor(if (connected) color else Color.black),
-          marginLeft(16.px),
           marginRight(-8.px)
         )
       )
@@ -90,7 +90,6 @@ fun node(model: Model, node: Node) = component {
       display.flex(),
       flexDirection.column(),
       backgroundColor(0xBBBBBB),
-      minWidth(150.px),
       userSelect("none")
     ),
     children = listOf(
@@ -124,6 +123,11 @@ private fun nodeHeader(model: Model, node: NodeId, type: NodeType) = component {
 }
 
 private fun nodeBody(model: Model, type: NodeType, node: Node) = component {
+  val outputsPadding = if (type.outputs.isNotEmpty())
+    padding(vertical = 4.px, horizontal = 4.px)
+  else
+    null
+
   Div(
     css = listOf(
       display.flex(),
@@ -135,16 +139,22 @@ private fun nodeBody(model: Model, type: NodeType, node: Node) = component {
       Div(
         css = listOf(
           display.flex(),
-          flexDirection.column(),
-          padding(vertical = 4.px, horizontal = 4.px)
+          flex(1, 1, 100.pct),
+          padding(vertical = 4.px, horizontal = 4.px),
+          flexDirection.column()
         ),
-        children = type.inputs.map { input(model.joints, node.id, it) }
+        children = listOf(
+          *For(type.inputs) {
+            input(model.joints, node.id, it)
+          },
+          smallShaderPreview(node.id)
+        )
       ),
       Div(
         css = listOf(
           display.flex(),
           flexDirection.column(),
-          padding(vertical = 4.px, horizontal = 4.px)
+          outputsPadding
         ),
         children = type.outputs.map { output(model, node.id, it) }
       )
