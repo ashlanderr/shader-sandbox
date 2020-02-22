@@ -1,15 +1,15 @@
 package app
 
-import gl.WebGLRenderingContext
 import io.akryl.component
 import io.akryl.dom.html.Canvas
 import io.akryl.useEffect
 import io.akryl.useRef
-import org.khronos.webgl.Float32Array
+import org.khronos.webgl.*
 import org.w3c.dom.CanvasRenderingContext2D
 import org.w3c.dom.HTMLCanvasElement
 import kotlin.browser.document
 import kotlin.browser.window
+import org.khronos.webgl.WebGLRenderingContext.Companion as GL
 
 private const val VERTEX_SHADER = """
 #version 100
@@ -36,16 +36,16 @@ void main( void ) {
 
 private interface UniformState {
   interface Factory {
-    fun find(gl: WebGLRenderingContext, program: Int): UniformState?
+    fun find(gl: WebGLRenderingContext, program: WebGLProgram): UniformState?
   }
 
   fun update()
   fun apply(gl: WebGLRenderingContext)
 }
 
-private class TimeUniform(private val index: Int) : UniformState {
+private class TimeUniform(private val index: WebGLUniformLocation) : UniformState {
   companion object : UniformState.Factory {
-    override fun find(gl: WebGLRenderingContext, program: Int) =
+    override fun find(gl: WebGLRenderingContext, program: WebGLProgram) =
       gl.getUniformLocation(program, "time")?.let { TimeUniform(it) }
   }
 
@@ -66,8 +66,8 @@ private val UNIFORMS = listOf(
 
 private class Renderer private constructor(
   private val gl: WebGLRenderingContext,
-  private val program: Int,
-  private val buffer: Int
+  private val program: WebGLProgram,
+  private val buffer: WebGLBuffer
 ) {
   private val uniforms = UNIFORMS
     .mapNotNull { it.find(gl, program) }
@@ -76,25 +76,25 @@ private class Renderer private constructor(
     fun create(canvas: HTMLCanvasElement, fragmentShaderSource: String): Result<String, Renderer> {
       val gl = canvas.getContext("webgl").unsafeCast<WebGLRenderingContext>()
 
-      val vertexShader = gl.createShader(gl.VERTEX_SHADER)
+      val vertexShader = gl.createShader(GL.VERTEX_SHADER)
       gl.shaderSource(vertexShader, VERTEX_SHADER)
       gl.compileShader(vertexShader)
 
-      if (gl.getShaderParameter(vertexShader, gl.COMPILE_STATUS) == false) {
+      if (gl.getShaderParameter(vertexShader, GL.COMPILE_STATUS) == false) {
         val linkErrLog = gl.getShaderInfoLog(vertexShader)
         return Err("Vertex shader did not link successfully. Error log: $linkErrLog")
       }
 
-      val fragmentShader = gl.createShader(gl.FRAGMENT_SHADER)
+      val fragmentShader = gl.createShader(GL.FRAGMENT_SHADER)
       gl.shaderSource(fragmentShader, fragmentShaderSource)
       gl.compileShader(fragmentShader)
 
-      if (gl.getShaderParameter(fragmentShader, gl.COMPILE_STATUS) == false) {
+      if (gl.getShaderParameter(fragmentShader, GL.COMPILE_STATUS) == false) {
         val linkErrLog = gl.getShaderInfoLog(fragmentShader)
         return Err("Fragment shader did not link successfully. Error log: $linkErrLog")
       }
 
-      val program = gl.createProgram()
+      val program = gl.createProgram()!!
       gl.attachShader(program, vertexShader)
       gl.attachShader(program, fragmentShader)
       gl.linkProgram(program)
@@ -103,12 +103,12 @@ private class Renderer private constructor(
       gl.deleteShader(vertexShader)
       gl.deleteShader(fragmentShader)
 
-      if (gl.getProgramParameter(program, gl.LINK_STATUS) == false) {
+      if (gl.getProgramParameter(program, GL.LINK_STATUS) == false) {
         val linkErrLog = gl.getProgramInfoLog(program)
         return Err("Shader program did not link successfully. Error log: $linkErrLog")
       }
 
-      val buffer = gl.createBuffer()
+      val buffer = gl.createBuffer()!!
       val vertexData = Float32Array(arrayOf(
         -1.0f, -1.0f, 0.0f, 1.0f,
         1.0f, -1.0f, 0.0f, 1.0f,
@@ -118,9 +118,9 @@ private class Renderer private constructor(
         -1.0f, -1.0f, 0.0f, 1.0f
       ))
       gl.enableVertexAttribArray(0)
-      gl.bindBuffer(gl.ARRAY_BUFFER, buffer)
-      gl.bufferData(gl.ARRAY_BUFFER, vertexData, gl.STATIC_DRAW)
-      gl.vertexAttribPointer(0, 4, gl.FLOAT, false, 0, 0)
+      gl.bindBuffer(GL.ARRAY_BUFFER, buffer)
+      gl.bufferData(GL.ARRAY_BUFFER, vertexData, GL.STATIC_DRAW)
+      gl.vertexAttribPointer(0, 4, GL.FLOAT, false, 0, 0)
 
       return Ok(Renderer(gl, program, buffer))
     }
@@ -129,8 +129,8 @@ private class Renderer private constructor(
   fun render() {
     gl.useProgram(program)
     uniforms.forEach { it.apply(gl) }
-    gl.bindBuffer(gl.ARRAY_BUFFER, buffer)
-    gl.drawArrays(gl.TRIANGLES, 0, 6)
+    gl.bindBuffer(GL.ARRAY_BUFFER, buffer)
+    gl.drawArrays(GL.TRIANGLES, 0, 6)
 
     uniforms.forEach { it.update() }
   }
