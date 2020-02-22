@@ -20,6 +20,9 @@ import kotlin.math.roundToInt
 fun sidePanel() = component {
   val model = useSelector<Model>()
 
+  val compiled = model.compiled[RESULT_NODE_ID]
+    ?.orElse { null }
+
   Div(
     css = listOf(
       display.flex(),
@@ -29,7 +32,7 @@ fun sidePanel() = component {
       backgroundColor(0xBBBBBB)
     ),
     children = listOf(
-      mainPreview(model.compiled),
+      mainPreview(compiled),
       when (val selection = model.selection) {
         null -> typesCatalogue(model)
         is Selection.Joint -> typesCatalogue(model)

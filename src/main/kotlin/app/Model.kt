@@ -146,7 +146,7 @@ data class Model(
   val joints: Joints,
   val lines: PersistentList<JointLine>,
   val move: ViewportMove?,
-  val compiled: CompiledShader?,
+  val compiled: CompiledNodes,
   val selection: Selection?,
   val search: String?,
   val offset: WorldPoint,

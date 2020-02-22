@@ -4,7 +4,7 @@ import app.DataType.Color
 import app.DataType.Scalar
 import kotlinx.collections.immutable.persistentSetOf
 
-val RESULT_NODE_ID = NodeId(-1)
+val RESULT_NODE_ID = NodeId(0)
 val RESULT_TYPE_ID = NodeTypeId("Global", "Result")
 val RESULT_INPUT_COLOR = InputId("Color")
 
@@ -119,7 +119,10 @@ val NODE_TYPES = entityMapOf(
     ),
     outputs = persistentSetOf(),
     globals = emptySet(),
-    code = emptyMap()
+    code = mapOf(
+      listOf(Color, Color) to listOf("vec4 $NODE_RESULT_VAR = #inputColor;"),
+      listOf(Scalar, Color) to listOf("vec4 $NODE_RESULT_VAR = vec4(#inputColor);")
+    )
   ),
   // math
   NodeType(

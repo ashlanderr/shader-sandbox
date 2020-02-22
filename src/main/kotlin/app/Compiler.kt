@@ -4,7 +4,13 @@ import kotlinx.collections.immutable.*
 
 data class CompilerError(val nodeId: NodeId, val message: String)
 
+typealias CompilerErrors = List<CompilerError>
+
 data class CompiledShader(val lines: List<String>)
+
+typealias CompiledShaderResult = Result<CompilerErrors, CompiledShader>
+
+typealias CompiledNodes = Map<NodeId, CompiledShaderResult>
 
 private data class OutputDesc(
   val variable: String,
@@ -16,6 +22,7 @@ private typealias CompiledCache = PersistentMap<NodeId, CompiledResult>
 private typealias CompiledResult = Result<List<CompilerError>, CompiledNode>
 
 private data class CompiledNode(
+  val dependencies: Set<NodeId>,
   val globals: Set<String>,
   val code: List<String>,
   val output: PersistentMap<OutputId, OutputDesc>
@@ -31,47 +38,55 @@ fun compile(
   types: EntityMap<NodeTypeId, NodeType>,
   nodes: EntityMap<NodeId, Node>,
   joints: EntityMap<Pair<NodeId, InputId>, Joint>
-): Result<List<CompilerError>, CompiledShader> {
-  val result = nodes[RESULT_NODE_ID]
-    ?: return Err(listOf(CompilerError(RESULT_NODE_ID, "Result node not found")))
-
-  if (result.type != RESULT_TYPE_ID)
-    return Err(listOf(CompilerError(RESULT_NODE_ID, "Result node has wrong type")))
-
-  val colorJoint = joints[Pair(RESULT_NODE_ID, RESULT_INPUT_COLOR)]
-    ?: return Err(listOf(CompilerError(RESULT_NODE_ID, "Result 'Color' input is not connected")))
-
-  val compiled = compileNode(colorJoint.source.first, types, nodes, joints)
-  return compileToString(compiled, colorJoint)
+): CompiledNodes {
+  val cache = nodes.fold(persistentMapOf<NodeId, CompiledResult>()) { acc, node ->
+    compileNode(node.key, types, nodes, joints, compiled = acc)
+  }
+  return cache.mapValues { compileToString(cache, it.key, it.value) }
 }
 
-private fun compileToString(compiled: CompiledCache, color: Joint): Result<List<CompilerError>, CompiledShader> {
-  val outputNode = compiled[color.source.first]
-    ?: return Err(listOf(CompilerError(RESULT_NODE_ID, "Color output not found")))
+private data class ConcatNodes(
+  val globals: Set<String> = emptySet(),
+  val code: List<String> = emptyList()
+)
 
-  when (outputNode) {
+private fun concatNodes(compiled: CompiledCache, node: CompiledNode): ConcatNodes {
+  val inputs = node.dependencies
+    .mapNotNull { compiled[it]?.orElse { null } }
+    .map { concatNodes(compiled, it) }
+
+  val self = ConcatNodes(
+    globals = node.globals,
+    code = node.code
+  )
+
+  return (inputs + self).fold(ConcatNodes()) { acc, n ->
+    ConcatNodes(
+      globals = acc.globals + n.globals,
+      code = acc.code + n.code
+    )
+  }
+}
+
+private fun compileToString(compiled: CompiledCache, nodeId: NodeId, node: CompiledResult): CompiledShaderResult {
+  when (node) {
     is Ok -> {
-      val output = outputNode.value.output[color.source.second]
-        ?: return Err(listOf(CompilerError(RESULT_NODE_ID, "Color output not found")))
+      val output = node.value.output[OutputId.All]
+        ?: return Err(listOf(CompilerError(nodeId, "Output not found")))
 
       val resultLine = when (output.type) {
         DataType.Scalar -> "gl_FragColor = vec4(${output.variable}, ${output.variable}, ${output.variable}, 1.0);"
         DataType.Color -> "gl_FragColor = vec4(${output.variable}.rgb, 1.0);"
       }
 
-      val successfullyCompiled = compiled.values
-        .filterIsInstance<Ok<CompiledNode>>()
-        .map { it.value }
-
-      val globals = successfullyCompiled.flatMapTo(HashSet()) { it.globals }
-      val code = successfullyCompiled.flatMap { it.code } + resultLine
+      val (globals, code) = concatNodes(compiled, node.value)
 
       val lines = listOf(
         "#version 100",
         "precision mediump float;",
         *globals.toTypedArray(),
         "void main( void ) {",
-        *code.map { "  $it" }.toTypedArray(),
+        *(code + resultLine).map { "  $it" }.toTypedArray(),
         "}"
       )
 
@@ -122,6 +137,10 @@ private fun compileNode(
     .filter { it.key.first == nodeId }
     .associate { Pair(it.key.second, it.value) }
 
+  val dependencies = nodeJoints
+    .map { it.value.source.first }
+    .toSet()
+
   val newCompiled = nodeJoints.values.fold(compiled) { acc, joint ->
     compileNode(joint.source.first, types, nodes, joints, newStack, acc)
   }
@@ -159,6 +178,7 @@ private fun compileNode(
     val variable = "node${node.id}_result"
     val output = buildOutput(outputType, variable)
     CompiledNode(
+      dependencies = dependencies,
       globals = type.globals,
       code = codeReplaced,
       output = output

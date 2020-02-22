@@ -17,7 +17,7 @@ val store by lazy {
         joints = INITIAL_JOINTS,
         lines = persistentListOf(),
         move = null,
-        compiled = compile(NODE_TYPES, INITIAL_NODES, INITIAL_JOINTS).orElse { null },
+        compiled = compile(NODE_TYPES, INITIAL_NODES, INITIAL_JOINTS),
         selection = null,
         search = null,
         offset = WorldPoint(0.0, 0.0),
@@ -186,10 +186,7 @@ private fun doMove(model: Model, msg: Msg.DoMove): Pair<Model, Nothing?> {
 
 private fun triggerCompile(model: Model): Pair<Model, Cmd?> {
   // todo async compile
-  val newCompiled = compile(model.types, model.nodes, model.joints).orElse { err ->
-    console.error(err)
-    model.compiled
-  }
+  val newCompiled = compile(model.types, model.nodes, model.joints)
   val newModel = if (newCompiled != model.compiled) {
     model.copy(
       compiled = newCompiled
