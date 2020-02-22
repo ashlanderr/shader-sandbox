@@ -2,7 +2,10 @@ package app
 
 import kotlinx.collections.immutable.*
 
-sealed class Cmd {}
+sealed class Cmd {
+  class LocalStorageGet(val key: String, val msg: (value: String?) -> Msg) : Cmd()
+  class LocalStoragePut(val key: String, val value: String) : Cmd()
+}
 
 sealed class Msg {
   class SetLines(val lines: PersistentList<JointLine>) : Msg()
@@ -24,6 +27,7 @@ sealed class Msg {
   object DeleteSelected : Msg()
 
   // data
+  class ParseData(val value: String?) : Msg()
   class PutNodeParam(val node: NodeId, val param: ParamId, val value: DataValue) : Msg()
   class AddNode(val type: NodeTypeId, val offset: WorldPoint) : Msg()
 }

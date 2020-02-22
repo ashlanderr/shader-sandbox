@@ -4,9 +4,14 @@ import io.akryl.redux.MsgAction
 import io.akryl.redux.createStore
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toPersistentMap
+import org.w3c.dom.get
+import org.w3c.dom.set
 import redux.StoreEnhancer
+import kotlin.browser.localStorage
 import kotlin.math.max
 import kotlin.math.min
+
+private const val LOCAL_STORAGE_DATA_KEY = "data"
 
 val store by lazy {
   createStore(
@@ -23,10 +28,10 @@ val store by lazy {
         offset = WorldPoint(0.0, 0.0),
         scale = 1.0
       ),
-      null
+      Cmd.LocalStorageGet(LOCAL_STORAGE_DATA_KEY, Msg::ParseData)
     ),
     update = ::update,
-    execute = { emptyList() },
+    execute = ::execute,
     enhancer = js("window.__REDUX_DEVTOOLS_EXTENSION__ && window.__REDUX_DEVTOOLS_EXTENSION__()")
       .unsafeCast<StoreEnhancer<Model, MsgAction<Msg>>>()
   )
@@ -47,6 +52,7 @@ private fun update(model: Model, msg: Msg): Pair<Model, Cmd?> {
     is Msg.SelectNode -> selectNode(model, msg)
     is Msg.ClearSelection -> clearSelection(model)
     is Msg.DeleteSelected -> deleteSelected(model)
+    is Msg.ParseData -> parseData(model, msg)
     is Msg.PutNodeParam -> putNodeParam(model, msg)
     is Msg.AddNode -> addNode(model, msg)
   }
@@ -194,7 +200,9 @@ private fun triggerCompile(model: Model): Pair<Model, Cmd?> {
   } else {
     model
   }
-  return Pair(newModel, null)
+
+  val data = JSON.stringify(PersistentModel(model.nodes, model.joints).toJson())
+  return Pair(newModel, Cmd.LocalStoragePut(LOCAL_STORAGE_DATA_KEY, data))
 }
 
 private fun selectJoint(model: Model, msg: Msg.SelectJoint): Pair<Model, Cmd?> {
@@ -241,6 +249,27 @@ fun deleteSelected(model: Model): Pair<Model, Cmd?> {
   return triggerCompile(newModel)
 }
 
+private fun parseData(model: Model, msg: Msg.ParseData): Pair<Model, Cmd?> {
+  val data = try {
+    msg.value?.let { persistenceModelFromJson(JSON.parse(it)) }
+  } catch (ex: Throwable) {
+    console.error(ex)
+    null
+  }
+
+  val newModel = if (data != null) {
+    model.copy(
+      nodes = data.nodes,
+      joints = data.joints,
+      compiled = compile(model.types, data.nodes, data.joints)
+    )
+  } else {
+    model
+  }
+
+  return Pair(newModel, null)
+}
+
 private fun putNodeParam(model: Model, msg: Msg.PutNodeParam): Pair<Model, Cmd?> {
   val node = model.nodes[msg.node] ?: return Pair(model, null)
   val newModel = model.copy(
@@ -283,5 +312,15 @@ private fun defaultValue(paramType: ParamType): DataValue {
       DataValue.Scalar(0.0f)
     DataType.Color ->
       DataValue.Color(0.0f, 0.0f, 0.0f, 0.0f)
+  }
+}
+
+private suspend fun execute(cmd: Cmd) = when (cmd) {
+  is Cmd.LocalStorageGet -> {
+    listOf(cmd.msg(localStorage[cmd.key]))
+  }
+  is Cmd.LocalStoragePut -> {
+    localStorage[cmd.key] = cmd.value
+    emptyList()
   }
 }
