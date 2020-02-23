@@ -25,8 +25,14 @@ import kotlin.browser.document
 import kotlin.experimental.and
 import kotlin.math.max
 import kotlin.math.min
+import kotlin.math.pow
 
 private const val MOUSE_BUTTON_MIDDLE = 4.toShort()
+
+private const val WHEEL_SIZE_LINE = 17.0
+private const val WHEEL_MODE_PIXELS = 0
+private const val WHEEL_MODE_LINES = 1
+private const val ZOOM_BASE_FACTOR = 1.1
 
 fun viewport() = component {
   val model = useSelector<Model>()
@@ -66,14 +72,17 @@ fun viewport() = component {
   }
 
   fun onWheel(e: WheelEvent) {
-    val point = e.clientPoint.toWorld(model) ?: return
-    val speed = 1.3
-    val factor = if (e.deltaY < 0) {
-      speed
-    } else {
-      1.0 / speed
+    if (e.ctrlKey) {
+      val point = e.clientPoint.toWorld(model) ?: return
+      val pixelAmount = when (e.deltaMode) {
+        WHEEL_MODE_PIXELS -> e.deltaY
+        WHEEL_MODE_LINES -> e.deltaY * WHEEL_SIZE_LINE
+        else -> e.deltaY
+      }
+      val zoomAmount = -pixelAmount / 53.0
+      val factor = ZOOM_BASE_FACTOR.pow(zoomAmount)
+      dispatch(Msg.ScaleViewport(factor, point))
     }
-    dispatch(Msg.ScaleViewport(factor, point))
   }
 
   Div(
