@@ -11,6 +11,7 @@ import io.akryl.redux.provider
 import io.akryl.useEffect
 import io.akryl.useRef
 import org.w3c.dom.HTMLDivElement
+import org.w3c.dom.events.WheelEvent
 import react.MutableRefObject
 import react_dom.ReactDom
 import kotlin.browser.document
@@ -40,7 +41,10 @@ fun app() = component {
 private fun ComponentScope.usePreventZoom(ref: MutableRefObject<HTMLDivElement?>) {
   useEffect(emptyList()) {
     ref.current?.addEventListener("wheel", { e ->
-      e.preventDefault()
+      e as WheelEvent
+      if (e.ctrlKey) {
+        e.preventDefault()
+      }
     })
   }
 }
