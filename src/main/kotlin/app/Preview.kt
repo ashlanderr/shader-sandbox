@@ -9,6 +9,7 @@ import org.w3c.dom.CanvasRenderingContext2D
 import org.w3c.dom.HTMLCanvasElement
 import kotlin.browser.document
 import kotlin.browser.window
+import kotlin.math.min
 import org.khronos.webgl.WebGLRenderingContext.Companion as GL
 
 private const val VERTEX_SHADER = """
@@ -131,7 +132,9 @@ private class Renderer private constructor(
     uniforms.forEach { it.apply(gl) }
     gl.bindBuffer(GL.ARRAY_BUFFER, buffer)
     gl.drawArrays(GL.TRIANGLES, 0, 6)
+  }
 
+  fun update() {
     uniforms.forEach { it.update() }
   }
 
@@ -172,6 +175,7 @@ fun shaderPreview(nodes: CompiledNodes) = component {
     renderersHandle = null
     largeRendererHandle?.dispose()
     largeRendererHandle = null
+    var tick = 0
 
     val renderers = nodes
       .mapNotNull { Pair(it.key, it.value.orElse { null }) }
@@ -195,13 +199,26 @@ fun shaderPreview(nodes: CompiledNodes) = component {
 
     fun render() {
       renderHandle = window.requestAnimationFrame { render() }
-      for ((nodeId, renderer) in renderers) {
+
+      // optimization: render only fixed number of previews to reduce GPU load
+      // todo change `renderCount` based on time/preview statistics
+      val renderCount = min(4, renderers.size)
+
+      for (i in 0 until renderCount) {
+        val (nodeId, renderer) = renderers[tick % renderers.size]
         val canvas = document.getElementById("node-shader-preview-$nodeId") as? HTMLCanvasElement ?: continue
         val ctx = canvas.getContext("2d") as? CanvasRenderingContext2D ?: continue
         renderer.render()
         ctx.drawImage(offscreenCanvas, 0.0, 0.0)
+        tick += 1
       }
+
+      for ((_, renderer) in renderers) {
+        renderer.update()
+      }
+
       largeRenderer?.render()
+      largeRenderer?.update()
     }
 
     render()
