@@ -235,6 +235,52 @@ val NODE_TYPES = entityMapOf(
       listOf(Color, Color, Color) to listOf("vec4 $NODE_RESULT_VAR = min(#inputA, #inputB);")
     )
   ),
+  NodeType(
+    id = NodeTypeId("Math", "Square"),
+    hidden = false,
+    params = entityMapOf(),
+    inputs = persistentSetOf(
+      InputId("X")
+    ),
+    outputs = persistentSetOf(
+      OutputId.All
+    ),
+    globals = emptySet(),
+    code = mapOf(
+      listOf(Scalar, Scalar) to listOf("float $NODE_RESULT_VAR = #inputX * #inputX;")
+    )
+  ),
+  NodeType(
+    id = NodeTypeId("Math", "Sqrt"),
+    hidden = false,
+    params = entityMapOf(),
+    inputs = persistentSetOf(
+      InputId("X")
+    ),
+    outputs = persistentSetOf(
+      OutputId.All
+    ),
+    globals = emptySet(),
+    code = mapOf(
+      listOf(Scalar, Scalar) to listOf("float $NODE_RESULT_VAR = sqrt(#inputX);")
+    )
+  ),
+  NodeType(
+    id = NodeTypeId("Math", "Pow"),
+    hidden = false,
+    params = entityMapOf(),
+    inputs = persistentSetOf(
+      InputId("X"),
+      InputId("P")
+    ),
+    outputs = persistentSetOf(
+      OutputId.All
+    ),
+    globals = emptySet(),
+    code = mapOf(
+      listOf(Scalar, Scalar, Scalar) to listOf("float $NODE_RESULT_VAR = pow(#inputX, #inputP);")
+    )
+  ),
   // vectors
   NodeType(
     id = NodeTypeId("Vector", "Distance"),
