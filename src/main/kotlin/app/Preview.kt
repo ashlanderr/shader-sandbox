@@ -7,6 +7,7 @@ import io.akryl.useRef
 import org.khronos.webgl.*
 import org.w3c.dom.CanvasRenderingContext2D
 import org.w3c.dom.HTMLCanvasElement
+import org.w3c.dom.HTMLElement
 import kotlin.browser.document
 import kotlin.browser.window
 import kotlin.math.min
@@ -199,18 +200,30 @@ fun shaderPreview(nodes: CompiledNodes) = component {
 
     fun render() {
       renderHandle = window.requestAnimationFrame { render() }
+      val viewportBox = (document.getElementById(VIEWPORT_ID) as? HTMLElement)
+        ?.getBoundingClientRect()
+        ?: return
 
       // optimization: render only fixed number of previews to reduce GPU load
       // todo change `renderCount` based on time/preview statistics
-      val renderCount = min(4, renderers.size)
+      var renderCount = min(4, renderers.size)
 
-      for (i in 0 until renderCount) {
+      var i = 0
+      while (i < renderers.size && renderCount > 0) {
+        i += 1
+        tick += 1
         val (nodeId, renderer) = renderers[tick % renderers.size]
         val canvas = document.getElementById("node-shader-preview-$nodeId") as? HTMLCanvasElement ?: continue
+        val canvasBox = canvas.getBoundingClientRect()
+
+        if (canvasBox.left > viewportBox.right || canvasBox.right < viewportBox.left || canvasBox.top > viewportBox.bottom || canvasBox.bottom < viewportBox.top) {
+          continue
+        }
+
         val ctx = canvas.getContext("2d") as? CanvasRenderingContext2D ?: continue
         renderer.render()
         ctx.drawImage(offscreenCanvas, 0.0, 0.0)
-        tick += 1
+        renderCount -= 1
       }
 
       for ((_, renderer) in renderers) {
