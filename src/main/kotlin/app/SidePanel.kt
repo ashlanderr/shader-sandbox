@@ -29,7 +29,7 @@ fun sidePanel() = component {
       backgroundColor(0xBBBBBB)
     ),
     children = listOf(
-      shaderPreview(model.compiled),
+      shaderPreview(model),
       when (val selection = model.selection) {
         null -> typesCatalogue(model)
         is Selection.Joint -> typesCatalogue(model)

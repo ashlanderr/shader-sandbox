@@ -45,6 +45,7 @@ fun viewport() = component {
   val dispatch = useDispatch<Msg>()
   val events = useViewportHotKeys(dispatch)
   useBuildLines(model)
+  val moving = model.move is ViewportMove.Viewport
 
   fun onDragOver(e: DragEvent) {
     e.preventDefault()
@@ -115,6 +116,7 @@ fun viewport() = component {
     ),
     child = Div(
       style = listOf(
+        willChange(if (moving) "transform" else null),
         transformOrigin("0 0"),
         transform
           .scale(model.scale)

@@ -164,12 +164,14 @@ private var renderHandle: Int? = null
 private var renderersHandle: List<Pair<NodeId, Renderer>>? = null
 private var largeRendererHandle: Renderer? = null
 
-fun shaderPreview(nodes: CompiledNodes) = component {
+fun shaderPreview(model: Model) = component {
   // todo proper dispose
 
   val largeRef = useRef<HTMLCanvasElement?>(null)
+  val moving = useRef(false)
+  moving.current = model.move != null
 
-  useEffect(listOf(nodes)) {
+  useEffect(listOf(model.compiled)) {
     renderHandle?.let { window.cancelAnimationFrame(it) }
     renderHandle = null
     renderersHandle?.let { it.forEach { r -> r.second.dispose() } }
@@ -178,7 +180,7 @@ fun shaderPreview(nodes: CompiledNodes) = component {
     largeRendererHandle = null
     var tick = 0
 
-    val renderers = nodes
+    val renderers = model.compiled
       .mapNotNull { Pair(it.key, it.value.orElse { null }) }
       .mapNotNull { (id, node) ->
         Renderer.create(offscreenCanvas, node?.lines?.joinToString("\n") ?: DEFAULT_FRAGMENT_SHADER)
@@ -187,7 +189,7 @@ fun shaderPreview(nodes: CompiledNodes) = component {
       }
     renderersHandle = renderers
 
-    val resultSource = nodes[RESULT_NODE_ID]
+    val resultSource = model.compiled[RESULT_NODE_ID]
       ?.let { it.orElse { null } }
       ?.lines
       ?.joinToString("\n")
@@ -200,6 +202,8 @@ fun shaderPreview(nodes: CompiledNodes) = component {
 
     fun render() {
       renderHandle = window.requestAnimationFrame { render() }
+      if (moving.current) return
+
       val viewportBox = (document.getElementById(VIEWPORT_ID) as? HTMLElement)
         ?.getBoundingClientRect()
         ?: return
