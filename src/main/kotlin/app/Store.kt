@@ -43,6 +43,7 @@ private fun update(model: Model, msg: Msg): Pair<Model, Cmd?> {
     is Msg.SetSearch -> setSearch(model, msg)
     is Msg.MoveViewport -> moveViewport(model, msg)
     is Msg.ScaleViewport -> scaleViewport(model, msg)
+    is Msg.TranslateViewport -> translateViewport(model, msg)
     is Msg.MoveNode -> moveNode(model, msg)
     is Msg.MoveSourceJoint -> moveSourceJoint(model, msg)
     is Msg.StopOnInput -> stopOnInput(model, msg)
@@ -91,6 +92,15 @@ private fun scaleViewport(model: Model, msg: Msg.ScaleViewport): Pair<Model, Not
         (msg.center.x + model.offset.x) * model.scale / newScale - msg.center.x,
         (msg.center.y + model.offset.y) * model.scale / newScale - msg.center.y
       )
+    ),
+    null
+  )
+}
+
+private fun translateViewport(model: Model, msg: Msg.TranslateViewport): Pair<Model, Cmd?> {
+  return Pair(
+    model.copy(
+      offset = WorldPoint(model.offset.x - msg.offset.x, model.offset.y - msg.offset.y)
     ),
     null
   )

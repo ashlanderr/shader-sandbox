@@ -14,6 +14,7 @@ sealed class Msg {
   // move
   class MoveViewport(val point: WorldPoint) : Msg()
   class ScaleViewport(val factor: Double, val center: WorldPoint) : Msg()
+  class TranslateViewport(val offset: WorldPoint) : Msg()
   class MoveNode(val node: NodeId, val point: WorldPoint) : Msg()
   class MoveSourceJoint(val node: NodeId, val output: OutputId, val point: WorldPoint) : Msg()
   class DoMove(val point: WorldPoint) : Msg()

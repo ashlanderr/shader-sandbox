@@ -34,6 +34,12 @@ private const val WHEEL_MODE_PIXELS = 0
 private const val WHEEL_MODE_LINES = 1
 private const val ZOOM_BASE_FACTOR = 1.1
 
+fun wheelToPixels(value: Double, mode: Int) = when (mode) {
+  WHEEL_MODE_PIXELS -> value
+  WHEEL_MODE_LINES -> value * WHEEL_SIZE_LINE
+  else -> value
+}
+
 fun viewport() = component {
   val model = useSelector<Model>()
   val dispatch = useDispatch<Msg>()
@@ -72,16 +78,23 @@ fun viewport() = component {
   }
 
   fun onWheel(e: WheelEvent) {
-    if (e.ctrlKey) {
-      val point = e.clientPoint.toWorld(model) ?: return
-      val pixelAmount = when (e.deltaMode) {
-        WHEEL_MODE_PIXELS -> e.deltaY
-        WHEEL_MODE_LINES -> e.deltaY * WHEEL_SIZE_LINE
-        else -> e.deltaY
+    val offsetX = wheelToPixels(e.deltaX, e.deltaMode)
+    val offsetY = wheelToPixels(e.deltaY, e.deltaMode)
+    when {
+      e.ctrlKey -> {
+        val point = e.clientPoint.toWorld(model) ?: return
+        val zoomAmount = -offsetY / 53.0
+        val factor = ZOOM_BASE_FACTOR.pow(zoomAmount)
+        dispatch(Msg.ScaleViewport(factor, point))
       }
-      val zoomAmount = -pixelAmount / 53.0
-      val factor = ZOOM_BASE_FACTOR.pow(zoomAmount)
-      dispatch(Msg.ScaleViewport(factor, point))
+      e.shiftKey -> {
+        val offset = ViewPoint(offsetY, offsetX).toWorld(model, 0.0)
+        dispatch(Msg.TranslateViewport(offset))
+      }
+      else -> {
+        val offset = ViewPoint(offsetX, offsetY).toWorld(model, 0.0)
+        dispatch(Msg.TranslateViewport(offset))
+      }
     }
   }
 

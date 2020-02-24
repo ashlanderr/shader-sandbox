@@ -20,10 +20,10 @@ data class ClientPoint(
   val y: Double
 )
 
-fun ViewPoint.toWorld(model: Model): WorldPoint {
+fun ViewPoint.toWorld(model: Model, w: Double = 1.0): WorldPoint {
   return WorldPoint(
-    x / model.scale - model.offset.x,
-    y / model.scale - model.offset.y
+    x / model.scale - model.offset.x * w,
+    y / model.scale - model.offset.y * w
   )
 }
 
