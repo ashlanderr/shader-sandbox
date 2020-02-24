@@ -45,15 +45,18 @@ private fun typesCatalogue(model: Model) = component {
   Div(
     css = listOf(
       flex(1, 1, 100.pct),
-      overflow.auto()
+      overflow.hidden(),
+      display.flex(),
+      flexDirection.column()
     ),
     children = listOf(
       Input(
         css = listOf(
+          flex(0, 0, Linear.auto),
           width(100.pct),
           boxSizing.borderBox()
         ),
-        placeholder = "Search",
+        placeholder = "Search for node types...",
         value = model.search ?: "",
         onChange = { dispatch(Msg.SetSearch((it.target as HTMLInputElement).value)) }
       ),
@@ -113,28 +116,34 @@ private fun categories(model: Model) = component {
   }
 
   Div(
-    *For(categories.entries) { (category, types) ->
-      Div(
-        Text(category),
+    css = listOf(
+      flex(1, 1, 100.pct),
+      overflow.auto()
+    ),
+    children = listOf(
+      *For(categories.entries) { (category, types) ->
         Div(
-          *For(types) { type ->
-            Div(
-              draggable = true,
-              css = listOf(
-                paddingLeft(16.px),
-                cursor.pointer(),
-                userSelect("none"),
-                hover(
-                  backgroundColor(0xCCCCCC)
-                )
-              ),
-              text = type.id.name,
-              onDragStart = { onDrag(type.id, it) }
-            )
-          }
+          Text(category),
+          Div(
+            *For(types) { type ->
+              Div(
+                draggable = true,
+                css = listOf(
+                  paddingLeft(16.px),
+                  cursor.pointer(),
+                  userSelect("none"),
+                  hover(
+                    backgroundColor(0xCCCCCC)
+                  )
+                ),
+                text = type.id.name,
+                onDragStart = { onDrag(type.id, it) }
+              )
+            }
+          )
         )
-      )
-    }
+      }
+    )
   )
 }
 
