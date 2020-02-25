@@ -101,7 +101,7 @@ private fun categories(model: Model) = component {
       ),
       child = Div(
         style = listOf(
-          transformOrigin("0 0"),
+          transformOrigin(0.px, 0.px),
           transform.scale(model.scale),
           padding(16.px)
         ),
@@ -131,7 +131,7 @@ private fun categories(model: Model) = component {
                 css = listOf(
                   paddingLeft(16.px),
                   cursor.pointer(),
-                  userSelect("none"),
+                  userSelect.none(),
                   hover(
                     backgroundColor(0xCCCCCC)
                   )

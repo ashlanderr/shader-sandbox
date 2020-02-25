@@ -90,7 +90,7 @@ fun node(model: Model, node: Node) = component {
       display.flex(),
       flexDirection.column(),
       backgroundColor(0xBBBBBB),
-      userSelect("none")
+      userSelect.none()
     ),
     children = listOf(
       nodeHeader(model, node.id, type),
@@ -133,7 +133,7 @@ private fun nodeBody(model: Model, type: NodeType, node: Node) = component {
       display.flex(),
       backgroundColor(0x505050),
       color(0xFFFFFF),
-      justifyContent("space-between")
+      justifyContent.spaceBetween()
     ),
     children = listOf(
       Div(

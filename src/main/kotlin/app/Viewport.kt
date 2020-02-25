@@ -238,12 +238,12 @@ private fun jointLine(linesRect: LinesRect, selected: Boolean, jointLine: JointL
   Path(
     css = listOf(
       cursor.pointer(),
-      pointerEvents("all"),
-      stroke(if (selected) "#00fffc" else "#ffffff"),
-      strokeWidth("2"),
-      fill("transparent"),
+      pointerEvents.all(),
+      stroke(if (selected) 0x00fffc else 0xffffff),
+      strokeWidth(2),
+      fill(Color.transparent),
       hover(
-        strokeWidth("4")
+        strokeWidth(4)
       )
     ),
     d = "M${line.x1 + dx} ${line.y1 + dy} C${line.x2 + dx} ${line.y2 + dy}, ${line.x3 + dx} ${line.y3 + dy}, ${line.x4 + dx} ${line.y4 + dy}",
@@ -258,9 +258,9 @@ private fun pointLine(linesRect: LinesRect, a: WorldPoint, b: WorldPoint) = comp
 
   Path(
     css = listOf(
-      stroke("#ffffff"),
-      strokeWidth("2"),
-      fill("transparent")
+      stroke(0xffffff),
+      strokeWidth(2),
+      fill(Color.transparent)
     ),
     d = "M${line.x1 + dx} ${line.y1 + dy} C${line.x2 + dx} ${line.y2 + dy}, ${line.x3 + dx} ${line.y3 + dy}, ${line.x4 + dx} ${line.y4 + dy}"
   )
