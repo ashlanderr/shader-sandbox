@@ -8,10 +8,59 @@ import org.khronos.webgl.*
 import org.w3c.dom.CanvasRenderingContext2D
 import org.w3c.dom.HTMLCanvasElement
 import org.w3c.dom.HTMLElement
+import react.MutableRefObject
 import kotlin.browser.document
 import kotlin.browser.window
 import kotlin.math.min
 import org.khronos.webgl.WebGLRenderingContext.Companion as GL
+
+fun smallShaderPreview(nodeId: NodeId) = component {
+  Canvas(
+    id = "node-shader-preview-$nodeId",
+    width = 128,
+    height = 128
+  )
+}
+
+fun shaderPreview(model: Model) = component {
+  val largeRef = useRef<HTMLCanvasElement?>(null)
+  val moving = useRef(false)
+  moving.current = model.move != null
+
+  useEffect(listOf(model.compiled)) {
+    val renderers = model.compiled
+      .mapNotNull { Pair(it.key, it.value.orElse { null }) }
+      .mapNotNull { (id, node) ->
+        Renderer.create(offscreenCanvas, node?.lines?.joinToString("\n") ?: DEFAULT_FRAGMENT_SHADER)
+          .orElse { console.error(it); null }
+          ?.let { Pair(id, it) }
+      }
+
+    val resultSource = model.compiled[RESULT_NODE_ID]
+      ?.let { it.orElse { null } }
+      ?.lines
+      ?.joinToString("\n")
+      ?: DEFAULT_FRAGMENT_SHADER
+
+    val largeRenderer = largeRef.current
+      ?.let { Renderer.create(it, resultSource) }
+      ?.orElse { console.error(it); null }
+
+    val state = PreviewState(
+      largeRenderer = largeRenderer,
+      smallRenderers = renderers,
+      moving = moving
+    )
+    state.run()
+    dispose { state.dispose() }
+  }
+
+  Canvas(
+    width = 512,
+    height = 512,
+    ref = largeRef
+  )
+}
 
 private const val VERTEX_SHADER = """
 #version 100
@@ -152,98 +201,59 @@ private val offscreenCanvas by lazy {
   canvas
 }
 
-fun smallShaderPreview(nodeId: NodeId) = component {
-  Canvas(
-    id = "node-shader-preview-$nodeId",
-    width = 128,
-    height = 128
-  )
-}
+private class PreviewState(
+  private val largeRenderer: Renderer?,
+  private val smallRenderers: List<Pair<NodeId, Renderer>>,
+  private val moving: MutableRefObject<Boolean>
+) {
+  private var frameHandle: Int? = null
+  private var tick = 0
 
-private var renderHandle: Int? = null
-private var renderersHandle: List<Pair<NodeId, Renderer>>? = null
-private var largeRendererHandle: Renderer? = null
-
-fun shaderPreview(model: Model) = component {
-  // todo proper dispose
-
-  val largeRef = useRef<HTMLCanvasElement?>(null)
-  val moving = useRef(false)
-  moving.current = model.move != null
-
-  useEffect(listOf(model.compiled)) {
-    renderHandle?.let { window.cancelAnimationFrame(it) }
-    renderHandle = null
-    renderersHandle?.let { it.forEach { r -> r.second.dispose() } }
-    renderersHandle = null
-    largeRendererHandle?.dispose()
-    largeRendererHandle = null
-    var tick = 0
-
-    val renderers = model.compiled
-      .mapNotNull { Pair(it.key, it.value.orElse { null }) }
-      .mapNotNull { (id, node) ->
-        Renderer.create(offscreenCanvas, node?.lines?.joinToString("\n") ?: DEFAULT_FRAGMENT_SHADER)
-          .orElse { console.error(it); null }
-          ?.let { Pair(id, it) }
-      }
-    renderersHandle = renderers
-
-    val resultSource = model.compiled[RESULT_NODE_ID]
-      ?.let { it.orElse { null } }
-      ?.lines
-      ?.joinToString("\n")
-      ?: DEFAULT_FRAGMENT_SHADER
-
-    val largeRenderer = largeRef.current
-      ?.let { Renderer.create(it, resultSource) }
-      ?.orElse { console.error(it); null }
-    largeRendererHandle = largeRenderer
-
-    fun render() {
-      renderHandle = window.requestAnimationFrame { render() }
-      if (moving.current) return
-
-      val viewportBox = (document.getElementById(VIEWPORT_ID) as? HTMLElement)
-        ?.getBoundingClientRect()
-        ?: return
-
-      // optimization: render only fixed number of previews to reduce GPU load
-      // todo change `renderCount` based on time/preview statistics
-      var renderCount = min(4, renderers.size)
-
-      var i = 0
-      while (i < renderers.size && renderCount > 0) {
-        i += 1
-        tick += 1
-        val (nodeId, renderer) = renderers[tick % renderers.size]
-        val canvas = document.getElementById("node-shader-preview-$nodeId") as? HTMLCanvasElement ?: continue
-        val canvasBox = canvas.getBoundingClientRect()
-
-        if (canvasBox.left > viewportBox.right || canvasBox.right < viewportBox.left || canvasBox.top > viewportBox.bottom || canvasBox.bottom < viewportBox.top) {
-          continue
-        }
-
-        val ctx = canvas.getContext("2d") as? CanvasRenderingContext2D ?: continue
-        renderer.render()
-        ctx.drawImage(offscreenCanvas, 0.0, 0.0)
-        renderCount -= 1
-      }
-
-      for ((_, renderer) in renderers) {
-        renderer.update()
-      }
-
-      largeRenderer?.render()
-      largeRenderer?.update()
-    }
-
-    render()
+  fun run() {
+    frameHandle = window.requestAnimationFrame { render() }
   }
 
-  Canvas(
-    width = 512,
-    height = 512,
-    ref = largeRef
-  )
+  fun dispose() {
+    largeRenderer?.dispose()
+    smallRenderers.forEach { it.second.dispose() }
+    frameHandle?.let { window.cancelAnimationFrame(it) }
+  }
+
+  private fun render() {
+    frameHandle = window.requestAnimationFrame { render() }
+    if (moving.current) return
+
+    val viewportBox = (document.getElementById(VIEWPORT_ID) as? HTMLElement)
+      ?.getBoundingClientRect()
+      ?: return
+
+    // optimization: render only fixed number of previews to reduce GPU load
+    // todo change `renderCount` based on time/preview statistics
+    var renderCount = min(4, smallRenderers.size)
+
+    var i = 0
+    while (i < smallRenderers.size && renderCount > 0) {
+      i += 1
+      tick += 1
+      val (nodeId, renderer) = smallRenderers[tick % smallRenderers.size]
+      val canvas = document.getElementById("node-shader-preview-$nodeId") as? HTMLCanvasElement ?: continue
+      val canvasBox = canvas.getBoundingClientRect()
+
+      if (canvasBox.left > viewportBox.right || canvasBox.right < viewportBox.left || canvasBox.top > viewportBox.bottom || canvasBox.bottom < viewportBox.top) {
+        continue
+      }
+
+      val ctx = canvas.getContext("2d") as? CanvasRenderingContext2D ?: continue
+      renderer.render()
+      ctx.drawImage(offscreenCanvas, 0.0, 0.0)
+      renderCount -= 1
+    }
+
+    for ((_, renderer) in smallRenderers) {
+      renderer.update()
+    }
+
+    largeRenderer?.render()
+    largeRenderer?.update()
+  }
 }
