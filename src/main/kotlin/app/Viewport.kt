@@ -160,6 +160,8 @@ private fun computeLinesRect(model: Model): LinesRect {
     null -> emptyList()
   }
 
+  if (points.isEmpty()) return LinesRect(0.0, 0.0, 0.0, 0.0)
+
   var left = Double.POSITIVE_INFINITY
   var top = Double.POSITIVE_INFINITY
   var right = Double.NEGATIVE_INFINITY
@@ -176,34 +178,30 @@ private fun computeLinesRect(model: Model): LinesRect {
 }
 
 private fun lines(model: Model) = component {
-  if (model.lines.isNotEmpty()) {
-    val selection = model.selection as? Selection.Joint
-    val rect = computeLinesRect(model)
+  val selection = model.selection as? Selection.Joint
+  val rect = computeLinesRect(model)
 
-    Svg(
-      css = listOf(
-        position.absolute(),
-        pointerEvents("none")
-      ),
-      style = listOf(
-        left((rect.left - LINES_PADDING).px),
-        top((rect.top - LINES_PADDING).px),
-        width((rect.width + LINES_PADDING * 2).px),
-        height((rect.height + LINES_PADDING * 2).px)
-      ),
-      children = listOf(
-        when (val move = model.move) {
-          is ViewportMove.SourceJoint -> pointLine(rect, move.begin, move.end)
-          is ViewportMove.Node -> null
-          is ViewportMove.Viewport -> null
-          null -> null
-        },
-        *For(model.lines) { jointLine(rect, selection?.value == it.joint, it) }
-      )
+  Svg(
+    css = listOf(
+      position.absolute(),
+      pointerEvents.none()
+    ),
+    style = listOf(
+      left((rect.left - LINES_PADDING).px),
+      top((rect.top - LINES_PADDING).px),
+      width((rect.width + LINES_PADDING * 2).px),
+      height((rect.height + LINES_PADDING * 2).px)
+    ),
+    children = listOf(
+      when (val move = model.move) {
+        is ViewportMove.SourceJoint -> pointLine(rect, move.begin, move.end)
+        is ViewportMove.Node -> null
+        is ViewportMove.Viewport -> null
+        null -> null
+      },
+      *For(model.lines) { jointLine(rect, selection?.value == it.joint, it) }
     )
-  } else {
-    null
-  }
+  )
 }
 
 private fun nodes(model: Model): ReactElement<*> {
