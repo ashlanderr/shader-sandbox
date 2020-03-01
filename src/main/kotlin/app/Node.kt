@@ -4,6 +4,7 @@ import io.akryl.component
 import io.akryl.dom.css.properties.*
 import io.akryl.dom.html.Div
 import io.akryl.dom.html.For
+import io.akryl.memo
 import io.akryl.redux.useDispatch
 
 private fun input(joints: Joints, node: NodeId, input: InputId) = component {
@@ -37,10 +38,10 @@ private fun input(joints: Joints, node: NodeId, input: InputId) = component {
   )
 }
 
-private fun output(model: Model, node: NodeId, output: OutputId) = component {
+private fun output(joints: Joints, node: NodeId, output: OutputId) = memo {
   val dispatch = useDispatch<Msg>()
 
-  val connected = model.joints
+  val connected = joints
     .any { it.value.source.first == node && it.value.source.second == output }
 
   val color = when (output) {
@@ -58,7 +59,7 @@ private fun output(model: Model, node: NodeId, output: OutputId) = component {
       cursor.pointer()
     ),
     onMouseDown = { e ->
-      e.clientPoint.toWorld(model)?.let { p ->
+      e.clientPoint.toView()?.let { p ->
         dispatch(Msg.MoveSourceJoint(
           node = node,
           output = output,
@@ -82,8 +83,8 @@ private fun output(model: Model, node: NodeId, output: OutputId) = component {
   )
 }
 
-fun node(model: Model, node: Node) = component {
-  val type = model.types[node.type] ?: UNKNOWN_TYPE
+fun node(types: EntityMap<NodeTypeId, NodeType>, selection: Selection?, joints: Joints, node: Node) = memo {
+  val type = types[node.type] ?: UNKNOWN_TYPE
 
   Div(
     css = listOf(
@@ -93,15 +94,15 @@ fun node(model: Model, node: Node) = component {
       userSelect.none()
     ),
     children = listOf(
-      nodeHeader(model, node.id, type),
-      nodeBody(model, type, node)
+      nodeHeader(selection, node.id, type),
+      nodeBody(joints, type, node)
     )
   )
 }
 
-private fun nodeHeader(model: Model, node: NodeId, type: NodeType) = component {
+private fun nodeHeader(selection: Selection?, node: NodeId, type: NodeType) = memo {
   val dispatch = useDispatch<Msg>()
-  val selected = model.selection is Selection.Node && model.selection.node == node
+  val selected = selection is Selection.Node && selection.node == node
 
   Div(
     css = listOf(
@@ -114,7 +115,7 @@ private fun nodeHeader(model: Model, node: NodeId, type: NodeType) = component {
     onMouseDown = { e ->
       if (e.target === e.currentTarget) {
         dispatch(Msg.SelectNode(node))
-        e.clientPoint.toWorld(model)?.let {
+        e.clientPoint.toView()?.let {
           dispatch(Msg.MoveNode(node, it))
         }
       }
@@ -122,7 +123,7 @@ private fun nodeHeader(model: Model, node: NodeId, type: NodeType) = component {
   )
 }
 
-private fun nodeBody(model: Model, type: NodeType, node: Node) = component {
+private fun nodeBody(joints: Joints, type: NodeType, node: Node) = memo {
   val outputsPadding = if (type.outputs.isNotEmpty())
     padding(vertical = 4.px, horizontal = 4.px)
   else
@@ -145,7 +146,7 @@ private fun nodeBody(model: Model, type: NodeType, node: Node) = component {
         ),
         children = listOf(
           *For(type.inputs) {
-            input(model.joints, node.id, it)
+            input(joints, node.id, it)
           },
           smallShaderPreview(node.id)
         )
@@ -156,7 +157,7 @@ private fun nodeBody(model: Model, type: NodeType, node: Node) = component {
           flexDirection.column(),
           outputsPadding
         ),
-        children = type.outputs.map { output(model, node.id, it) }
+        children = type.outputs.map { output(joints, node.id, it) }
       )
     )
   )

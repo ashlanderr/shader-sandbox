@@ -25,8 +25,10 @@ val store by lazy {
         compiled = compile(NODE_TYPES, INITIAL_NODES, INITIAL_JOINTS),
         selection = null,
         search = null,
-        offset = WorldPoint(0.0, 0.0),
-        scale = 1.0
+        transform = Transform(
+          offset = WorldPoint(0.0, 0.0),
+          scale = 1.0
+        )
       ),
       Cmd.LocalStorageGet(LOCAL_STORAGE_DATA_KEY, Msg::ParseData)
     ),
@@ -83,14 +85,16 @@ private fun moveViewport(model: Model, msg: Msg.MoveViewport): Pair<Model, Nothi
 }
 
 private fun scaleViewport(model: Model, msg: Msg.ScaleViewport): Pair<Model, Nothing?> {
-  val newScale = max(0.1, min(msg.factor * model.scale, 4.0))
+  val newScale = max(0.1, min(msg.factor * model.transform.scale, 4.0))
 
   return Pair(
     model.copy(
-      scale = newScale,
-      offset = WorldPoint(
-        (msg.center.x + model.offset.x) * model.scale / newScale - msg.center.x,
-        (msg.center.y + model.offset.y) * model.scale / newScale - msg.center.y
+      transform = Transform(
+        scale = newScale,
+        offset = WorldPoint(
+          (msg.center.x + model.transform.offset.x) * model.transform.scale / newScale - msg.center.x,
+          (msg.center.y + model.transform.offset.y) * model.transform.scale / newScale - msg.center.y
+        )
       )
     ),
     null
@@ -100,7 +104,9 @@ private fun scaleViewport(model: Model, msg: Msg.ScaleViewport): Pair<Model, Not
 private fun translateViewport(model: Model, msg: Msg.TranslateViewport): Pair<Model, Cmd?> {
   return Pair(
     model.copy(
-      offset = WorldPoint(model.offset.x - msg.offset.x, model.offset.y - msg.offset.y)
+      transform = model.transform.copy(
+        offset = WorldPoint(model.transform.offset.x - msg.offset.x, model.transform.offset.y - msg.offset.y)
+      )
     ),
     null
   )
@@ -108,14 +114,15 @@ private fun translateViewport(model: Model, msg: Msg.TranslateViewport): Pair<Mo
 
 private fun moveNode(model: Model, msg: Msg.MoveNode): Pair<Model, Nothing?> {
   return Pair(
-    model.copy(move = ViewportMove.Node(msg.node, msg.point)),
+    model.copy(move = ViewportMove.Node(msg.node, msg.point.toWorld(model.transform))),
     null
   )
 }
 
 private fun moveSourceJoint(model: Model, msg: Msg.MoveSourceJoint): Pair<Model, Cmd?> {
+  val worldPoint = msg.point.toWorld(model.transform)
   return Pair(
-    model.copy(move = ViewportMove.SourceJoint(msg.node, msg.output, msg.point, msg.point)),
+    model.copy(move = ViewportMove.SourceJoint(msg.node, msg.output, worldPoint, worldPoint)),
     null
   )
 }
@@ -178,9 +185,11 @@ private fun doMove(model: Model, msg: Msg.DoMove): Pair<Model, Nothing?> {
 
       Pair(
         model.copy(
-          offset = WorldPoint(
-            model.offset.x + dx,
-            model.offset.y + dy
+          transform = model.transform.copy(
+            offset = WorldPoint(
+              model.transform.offset.x + dx,
+              model.transform.offset.y + dy
+            )
           )
         ),
         null

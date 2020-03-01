@@ -10,6 +10,7 @@ import io.akryl.dom.html.Div
 import io.akryl.dom.html.For
 import io.akryl.dom.html.Path
 import io.akryl.dom.html.Svg
+import io.akryl.memo
 import io.akryl.redux.useDispatch
 import io.akryl.redux.useSelector
 import io.akryl.useEffect
@@ -19,7 +20,6 @@ import org.w3c.dom.HTMLElement
 import org.w3c.dom.events.Event
 import org.w3c.dom.events.MouseEvent
 import org.w3c.dom.events.WheelEvent
-import react.ReactElement
 import react_redux.Dispatch
 import kotlin.browser.document
 import kotlin.experimental.and
@@ -53,13 +53,13 @@ fun viewport() = component {
 
   fun onDrop(e: DragEvent) {
     val type = e.dataTransfer?.getData("text")?.toNodeTypeId() ?: return
-    val offset = e.clientPoint.toWorld(model) ?: return
+    val offset = e.clientPoint.toWorld(model.transform) ?: return
     dispatch(Msg.AddNode(type, offset))
   }
 
   fun onMouseDown(e: MouseEvent) {
     if ((e.buttons and MOUSE_BUTTON_MIDDLE) == MOUSE_BUTTON_MIDDLE) {
-      e.clientPoint.toWorld(model)?.let {
+      e.clientPoint.toWorld(model.transform)?.let {
         dispatch(Msg.MoveViewport(it))
       }
     }
@@ -67,7 +67,7 @@ fun viewport() = component {
 
   fun onMouseMove(e: MouseEvent) {
     if (model.move != null) {
-      val point = e.clientPoint.toWorld(model)
+      val point = e.clientPoint.toWorld(model.transform)
       point?.let { dispatch(Msg.DoMove(it)) }
     }
   }
@@ -83,17 +83,17 @@ fun viewport() = component {
     val offsetY = wheelToPixels(e.deltaY, e.deltaMode)
     when {
       e.ctrlKey -> {
-        val point = e.clientPoint.toWorld(model) ?: return
+        val point = e.clientPoint.toWorld(model.transform) ?: return
         val zoomAmount = -offsetY / 53.0
         val factor = ZOOM_BASE_FACTOR.pow(zoomAmount)
         dispatch(Msg.ScaleViewport(factor, point))
       }
       e.shiftKey -> {
-        val offset = ViewPoint(offsetY, offsetX).toWorld(model, 0.0)
+        val offset = ViewPoint(offsetY, offsetX).toWorld(model.transform, 0.0)
         dispatch(Msg.TranslateViewport(offset))
       }
       else -> {
-        val offset = ViewPoint(offsetX, offsetY).toWorld(model, 0.0)
+        val offset = ViewPoint(offsetX, offsetY).toWorld(model.transform, 0.0)
         dispatch(Msg.TranslateViewport(offset))
       }
     }
@@ -119,8 +119,8 @@ fun viewport() = component {
         willChange(if (moving) "transform" else null),
         transformOrigin("0 0"),
         transform
-          .scale(model.scale)
-          .translate(model.offset.x.px, model.offset.y.px)
+          .scale(model.transform.scale)
+          .translate(model.transform.offset.x.px, model.transform.offset.y.px)
       ),
       children = listOf(
         lines(model),
@@ -199,13 +199,13 @@ private fun lines(model: Model) = component {
         is ViewportMove.Viewport -> null
         null -> null
       },
-      *For(model.lines) { jointLine(rect, selection?.value == it.joint, it) }
+      *For(model.lines) { jointLine(rect.left, rect.top, selection?.value == it.joint, it) }
     )
   )
 }
 
-private fun nodes(model: Model): ReactElement<*> {
-  return Div(
+private fun nodes(model: Model) = component {
+  Div(
     css = listOf(
       position.absolute(),
       left(0.px),
@@ -221,17 +221,17 @@ private fun nodes(model: Model): ReactElement<*> {
         style = listOf(
           transform.translate(it.value.offset.x.px, it.value.offset.y.px)
         ),
-        child = node(model, it.value)
+        child = node(model.types, model.selection, model.joints, it.value)
       )
     }
   )
 }
 
-private fun jointLine(linesRect: LinesRect, selected: Boolean, jointLine: JointLine) = component {
+private fun jointLine(left: Double, top: Double, selected: Boolean, jointLine: JointLine) = memo {
   val dispatch = useDispatch<Msg>()
   val line = jointLine.line
-  val dx = -linesRect.left + LINES_PADDING
-  val dy = -linesRect.top + LINES_PADDING
+  val dx = -left + LINES_PADDING
+  val dy = -top + LINES_PADDING
 
   Path(
     css = listOf(
@@ -296,12 +296,12 @@ private fun ComponentScope.useBuildLines(model: Model) {
       val p1 = ClientPoint(
         outputBox.left + outputBox.width / 2,
         outputBox.top + outputBox.height / 2
-      ).toWorld(viewportBox, model)
+      ).toWorld(viewportBox, model.transform)
 
       val p2 = ClientPoint(
         inputBox.left + inputBox.width / 2,
         inputBox.top + inputBox.height / 2
-      ).toWorld(viewportBox, model)
+      ).toWorld(viewportBox, model.transform)
 
       lines.add(JointLine(joint, lineFromPoints(p1, p2)))
     }

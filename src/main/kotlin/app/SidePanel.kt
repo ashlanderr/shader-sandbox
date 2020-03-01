@@ -102,17 +102,21 @@ private fun categories(model: Model) = component {
       child = Div(
         style = listOf(
           transformOrigin(0.px, 0.px),
-          transform.scale(model.scale),
+          transform.scale(model.transform.scale),
           padding(16.px)
         ),
         child = store.provider(listOf(
-          node(model, node)
+          node(model.types, model.selection, model.joints, node)
         ))
       )
     )
     ReactDom.render(tree, image)
 
-    e.dataTransfer?.setDragImage(image, (16 * model.scale).roundToInt(), (16 * model.scale).roundToInt())
+    e.dataTransfer?.setDragImage(
+      image,
+      x = (16 * model.transform.scale).roundToInt(),
+      y = (16 * model.transform.scale).roundToInt()
+    )
   }
 
   Div(

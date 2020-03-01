@@ -15,8 +15,8 @@ sealed class Msg {
   class MoveViewport(val point: WorldPoint) : Msg()
   class ScaleViewport(val factor: Double, val center: WorldPoint) : Msg()
   class TranslateViewport(val offset: WorldPoint) : Msg()
-  class MoveNode(val node: NodeId, val point: WorldPoint) : Msg()
-  class MoveSourceJoint(val node: NodeId, val output: OutputId, val point: WorldPoint) : Msg()
+  class MoveNode(val node: NodeId, val point: ViewPoint) : Msg()
+  class MoveSourceJoint(val node: NodeId, val output: OutputId, val point: ViewPoint) : Msg()
   class DoMove(val point: WorldPoint) : Msg()
   class StopOnInput(val node: NodeId, val input: InputId) : Msg()
   object StopOnViewport : Msg()
@@ -145,6 +145,11 @@ sealed class Selection {
 
 typealias Joints = EntityMap<Pair<NodeId, InputId>, Joint>
 
+data class Transform(
+  val offset: WorldPoint,
+  val scale: Double
+)
+
 data class Model(
   val types: EntityMap<NodeTypeId, NodeType>,
   val nodes: EntityMap<NodeId, Node>,
@@ -154,8 +159,7 @@ data class Model(
   val compiled: CompiledNodes,
   val selection: Selection?,
   val search: String?,
-  val offset: WorldPoint,
-  val scale: Double
+  val transform: Transform
 )
 
 fun String.toNodeTypeId(): NodeTypeId? {

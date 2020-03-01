@@ -20,10 +20,10 @@ data class ClientPoint(
   val y: Double
 )
 
-fun ViewPoint.toWorld(model: Model, w: Double = 1.0): WorldPoint {
+fun ViewPoint.toWorld(transform: Transform, w: Double = 1.0): WorldPoint {
   return WorldPoint(
-    x / model.scale - model.offset.x * w,
-    y / model.scale - model.offset.y * w
+    x / transform.scale - transform.offset.x * w,
+    y / transform.scale - transform.offset.y * w
   )
 }
 
@@ -41,6 +41,6 @@ fun ClientPoint.toView(viewport: DOMRect): ViewPoint {
   return ViewPoint(this.x - viewport.left, this.y - viewport.top)
 }
 
-fun ClientPoint.toWorld(viewport: DOMRect, model: Model) = this.toView(viewport).toWorld(model)
+fun ClientPoint.toWorld(viewport: DOMRect, transform: Transform) = this.toView(viewport).toWorld(transform)
 
-fun ClientPoint.toWorld(model: Model) = this.toView()?.toWorld(model)
+fun ClientPoint.toWorld(transform: Transform) = this.toView()?.toWorld(transform)
