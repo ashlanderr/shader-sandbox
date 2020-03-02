@@ -29,6 +29,7 @@ fun sidePanel() = component {
       backgroundColor(0xBBBBBB)
     ),
     children = listOf(
+      topBar(model),
       shaderPreview(model),
       when (val selection = model.selection) {
         null -> typesCatalogue(model)

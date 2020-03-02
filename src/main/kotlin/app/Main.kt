@@ -1,5 +1,6 @@
 package app
 
+import blueprint.includeBlueprintStyles
 import io.akryl.ComponentScope
 import io.akryl.component
 import io.akryl.dom.css.properties.display
@@ -18,6 +19,8 @@ import react_dom.ReactDom
 import kotlin.browser.document
 
 fun app() = component {
+  includeBlueprintStyles()
+
   val ref = useRef<HTMLDivElement?>(null)
   usePreventZoom(ref)
 
