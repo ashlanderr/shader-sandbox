@@ -1,6 +1,5 @@
 package app
 
-import blueprint.includeBlueprintStyles
 import io.akryl.ComponentScope
 import io.akryl.component
 import io.akryl.dom.css.properties.display
@@ -11,6 +10,7 @@ import io.akryl.dom.html.Div
 import io.akryl.redux.provider
 import io.akryl.useEffect
 import io.akryl.useRef
+import js.blueprint.includeBlueprintStyles
 import org.w3c.dom.HTMLDivElement
 import org.w3c.dom.events.Event
 import org.w3c.dom.events.WheelEvent

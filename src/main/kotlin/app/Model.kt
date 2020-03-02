@@ -28,6 +28,7 @@ sealed class Msg {
   object DeleteSelected : Msg()
 
   // data
+  class ApplyPersistentModel(val model: PersistentModel) : Msg()
   class ParseData(val value: String?) : Msg()
   class PutNodeParam(val node: NodeId, val param: ParamId, val value: DataValue) : Msg()
   class AddNode(val type: NodeTypeId, val offset: WorldPoint) : Msg()

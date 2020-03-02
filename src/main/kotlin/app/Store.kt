@@ -55,6 +55,7 @@ private fun update(model: Model, msg: Msg): Pair<Model, Cmd?> {
     is Msg.SelectNode -> selectNode(model, msg)
     is Msg.ClearSelection -> clearSelection(model)
     is Msg.DeleteSelected -> deleteSelected(model)
+    is Msg.ApplyPersistentModel -> applyPersistentModel(model, msg)
     is Msg.ParseData -> parseData(model, msg)
     is Msg.PutNodeParam -> putNodeParam(model, msg)
     is Msg.AddNode -> addNode(model, msg)
@@ -268,6 +269,19 @@ fun deleteSelected(model: Model): Pair<Model, Cmd?> {
   return triggerCompile(newModel)
 }
 
+private fun applyPersistentModel(model: Model, msg: Msg.ApplyPersistentModel): Pair<Model, Cmd?> {
+  val json = JSON.stringify(msg.model.toJson())
+
+  return Pair(
+    model.copy(
+      nodes = msg.model.nodes,
+      joints = msg.model.joints,
+      compiled = compile(model.types, msg.model.nodes, msg.model.joints)
+    ),
+    Cmd.LocalStoragePut(LOCAL_STORAGE_DATA_KEY, json)
+  )
+}
+
 private fun parseData(model: Model, msg: Msg.ParseData): Pair<Model, Cmd?> {
   val data = try {
     msg.value?.let { persistenceModelFromJson(JSON.parse(it)) }
@@ -276,17 +290,10 @@ private fun parseData(model: Model, msg: Msg.ParseData): Pair<Model, Cmd?> {
     null
   }
 
-  val newModel = if (data != null) {
-    model.copy(
-      nodes = data.nodes,
-      joints = data.joints,
-      compiled = compile(model.types, data.nodes, data.joints)
-    )
-  } else {
-    model
-  }
-
-  return Pair(newModel, null)
+  return if (data != null)
+    update(model, Msg.ApplyPersistentModel(data))
+  else
+    Pair(model, null)
 }
 
 private fun putNodeParam(model: Model, msg: Msg.PutNodeParam): Pair<Model, Cmd?> {

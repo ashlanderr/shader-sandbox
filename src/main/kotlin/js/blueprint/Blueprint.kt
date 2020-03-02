@@ -1,4 +1,4 @@
-package blueprint
+package js.blueprint
 
 import react.Component
 
