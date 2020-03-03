@@ -17,7 +17,7 @@ import org.w3c.files.get
 import kotlin.browser.window
 
 fun topBar(model: Model) = component {
-  buttonGroup(className = "bp3-dark", fill = true, children = listOf(
+  buttonGroup(fill = true, children = listOf(
     exportButton(model),
     importButton()
   ))

@@ -6,3 +6,23 @@ html, body, #app {
     font-family: sans-serif;
     background: #252525;
 }
+
+.custom-scrollbar {
+    overflow: auto;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+    background: #2f3f4b;
+    border-radius: 2px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+    background: rgb(92, 123, 147);
+    border-radius: 2px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-corner {
+    display: none;
+}

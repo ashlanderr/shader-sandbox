@@ -7,6 +7,8 @@ import react.Component
 external object Blueprint {
   val Button: Component<dynamic>
   val ButtonGroup: Component<dynamic>
+  val InputGroup: Component<dynamic>
+  val Tree: Component<dynamic>
 }
 
 fun includeBlueprintStyles() {

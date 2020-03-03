@@ -1,15 +1,16 @@
 package app
 
 import io.akryl.component
-import io.akryl.dom.css.invoke
 import io.akryl.dom.css.properties.*
 import io.akryl.dom.html.Div
-import io.akryl.dom.html.For
 import io.akryl.dom.html.Input
 import io.akryl.dom.html.Text
 import io.akryl.redux.provider
 import io.akryl.redux.useDispatch
 import io.akryl.redux.useSelector
+import js.blueprint.TreeNode
+import js.blueprint.inputGroup
+import js.blueprint.tree
 import kotlinx.collections.immutable.persistentMapOf
 import org.w3c.dom.DragEvent
 import org.w3c.dom.HTMLInputElement
@@ -26,8 +27,9 @@ fun sidePanel() = component {
       flexDirection.column(),
       width(512.px),
       height(100.pct),
-      backgroundColor(0xBBBBBB)
+      backgroundColor(0x293742)
     ),
+    className = "bp3-dark",
     children = listOf(
       topBar(model),
       shaderPreview(model),
@@ -51,15 +53,16 @@ private fun typesCatalogue(model: Model) = component {
       flexDirection.column()
     ),
     children = listOf(
-      Input(
+      Div(
         css = listOf(
-          flex(0, 0, Linear.auto),
-          width(100.pct),
-          boxSizing.borderBox()
+          padding(4.px)
         ),
-        placeholder = "Search for node types...",
-        value = model.search ?: "",
-        onChange = { dispatch(Msg.SetSearch((it.target as HTMLInputElement).value)) }
+        child = inputGroup(
+          placeholder = "Search for node types...",
+          leftIcon = "search",
+          value = model.search ?: "",
+          onChange = { dispatch(Msg.SetSearch((it.target as HTMLInputElement).value)) }
+        )
       ),
       categories(model)
     )
@@ -120,35 +123,32 @@ private fun categories(model: Model) = component {
     )
   }
 
-  Div(
-    css = listOf(
-      flex(1, 1, 100.pct),
-      overflow.auto()
-    ),
-    children = listOf(
-      *For(categories.entries) { (category, types) ->
-        Div(
-          Text(category),
-          Div(
-            *For(types) { type ->
-              Div(
-                draggable = true,
-                css = listOf(
-                  paddingLeft(16.px),
-                  cursor.pointer(),
-                  userSelect.none(),
-                  hover(
-                    backgroundColor(0xCCCCCC)
-                  )
-                ),
-                text = type.id.name,
-                onDragStart = { onDrag(type.id, it) }
-              )
-            }
-          )
+  val contents = categories.map { category ->
+    TreeNode(
+      id = category.key,
+      label = Text(category.key),
+      nodeData = null,
+      isExpanded = true,
+      childNodes = category.value.map { type ->
+        TreeNode(
+          id = type.id.name,
+          css = listOf(
+            cursor.pointer()
+          ),
+          label = Div(
+            draggable = true,
+            text = type.id.name,
+            onDragStart = { onDrag(type.id, it) }
+          ),
+          nodeData = null
         )
       }
     )
+  }
+
+  tree(
+    contents = contents,
+    className = "custom-scrollbar"
   )
 }
 
