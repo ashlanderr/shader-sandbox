@@ -6,6 +6,7 @@ import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toPersistentMap
 import org.w3c.dom.get
 import org.w3c.dom.set
+import react_redux.Dispatch
 import redux.StoreEnhancer
 import kotlin.browser.localStorage
 import kotlin.math.max
@@ -341,12 +342,11 @@ private fun defaultValue(paramType: ParamType): DataValue {
   }
 }
 
-private suspend fun execute(cmd: Cmd) = when (cmd) {
+private suspend fun execute(cmd: Cmd, dispatch: Dispatch<Msg>): Unit = when (cmd) {
   is Cmd.LocalStorageGet -> {
-    listOf(cmd.msg(localStorage[cmd.key]))
+    dispatch(cmd.msg(localStorage[cmd.key]))
   }
   is Cmd.LocalStoragePut -> {
     localStorage[cmd.key] = cmd.value
-    emptyList()
   }
 }
