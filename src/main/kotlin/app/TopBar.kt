@@ -2,8 +2,8 @@ package app
 
 import io.akryl.component
 import io.akryl.dom.css.properties.display
-import io.akryl.dom.html.Input
-import io.akryl.dom.html.Text
+import io.akryl.dom.html.input
+import io.akryl.dom.html.text
 import io.akryl.redux.useDispatch
 import io.akryl.useRef
 import js.blueprint.button
@@ -32,7 +32,7 @@ fun exportButton(model: Model) = component {
 
   button(
     icon = "export",
-    children = listOf(Text("Export")),
+    children = listOf(text("Export")),
     onClick = { onClick() }
   )
 }
@@ -65,8 +65,8 @@ fun importButton() = component {
   button(
     icon = "import",
     children = listOf(
-      Text("Import"),
-      Input(
+      text("Import"),
+      input(
         ref = ref,
         type = "file",
         css = listOf(display.none()),

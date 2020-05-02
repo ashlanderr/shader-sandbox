@@ -6,10 +6,10 @@ import io.akryl.ComponentScope
 import io.akryl.component
 import io.akryl.dom.css.invoke
 import io.akryl.dom.css.properties.*
-import io.akryl.dom.html.Div
 import io.akryl.dom.html.For
-import io.akryl.dom.html.Path
-import io.akryl.dom.html.Svg
+import io.akryl.dom.html.div
+import io.akryl.dom.html.path
+import io.akryl.dom.html.svg
 import io.akryl.memo
 import io.akryl.redux.useDispatch
 import io.akryl.redux.useSelector
@@ -99,7 +99,7 @@ fun viewport() = component {
     }
   }
 
-  Div(
+  div(
     onKeyDown = events.onKeyDown,
     onKeyUp = events.onKeyUp,
     onFocus = events.onFocus,
@@ -114,7 +114,7 @@ fun viewport() = component {
       position.relative(),
       overflow.hidden()
     ),
-    child = Div(
+    child = div(
       style = listOf(
         willChange(if (moving) "transform" else null),
         transformOrigin("0 0"),
@@ -181,7 +181,7 @@ private fun lines(model: Model) = component {
   val selection = model.selection as? Selection.Joint
   val rect = computeLinesRect(model)
 
-  Svg(
+  svg(
     css = listOf(
       position.absolute(),
       pointerEvents.none()
@@ -205,14 +205,14 @@ private fun lines(model: Model) = component {
 }
 
 private fun nodes(model: Model) = component {
-  Div(
+  div(
     css = listOf(
       position.absolute(),
       left(0.px),
       top(0.px)
     ),
     children = model.nodes.map {
-      Div(
+      div(
         css = listOf(
           position.absolute(),
           left(0.px),
@@ -233,7 +233,7 @@ private fun jointLine(left: Double, top: Double, selected: Boolean, jointLine: J
   val dx = -left + LINES_PADDING
   val dy = -top + LINES_PADDING
 
-  Path(
+  path(
     css = listOf(
       cursor.pointer(),
       pointerEvents.all(),
@@ -254,7 +254,7 @@ private fun pointLine(linesRect: LinesRect, a: WorldPoint, b: WorldPoint) = comp
   val dx = -linesRect.left + LINES_PADDING
   val dy = -linesRect.top + LINES_PADDING
 
-  Path(
+  path(
     css = listOf(
       stroke(0xffffff),
       strokeWidth(2),

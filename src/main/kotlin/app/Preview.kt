@@ -1,7 +1,7 @@
 package app
 
 import io.akryl.component
-import io.akryl.dom.html.Canvas
+import io.akryl.dom.html.canvas
 import io.akryl.useEffect
 import io.akryl.useRef
 import org.khronos.webgl.*
@@ -15,7 +15,7 @@ import kotlin.math.min
 import org.khronos.webgl.WebGLRenderingContext.Companion as GL
 
 fun smallShaderPreview(nodeId: NodeId) = component {
-  Canvas(
+  canvas(
     id = "node-shader-preview-$nodeId",
     width = 128,
     height = 128
@@ -55,7 +55,7 @@ fun shaderPreview(model: Model) = component {
     dispose { state.dispose() }
   }
 
-  Canvas(
+  canvas(
     width = 512,
     height = 512,
     ref = largeRef

@@ -2,9 +2,9 @@ package app
 
 import io.akryl.component
 import io.akryl.dom.css.properties.*
-import io.akryl.dom.html.Div
-import io.akryl.dom.html.Input
-import io.akryl.dom.html.Text
+import io.akryl.dom.html.div
+import io.akryl.dom.html.input
+import io.akryl.dom.html.text
 import io.akryl.redux.provider
 import io.akryl.redux.useDispatch
 import io.akryl.redux.useSelector
@@ -21,7 +21,7 @@ import kotlin.math.roundToInt
 fun sidePanel() = component {
   val model = useSelector<Model>()
 
-  Div(
+  div(
     css = listOf(
       display.flex(),
       flexDirection.column(),
@@ -45,7 +45,7 @@ fun sidePanel() = component {
 private fun typesCatalogue(model: Model) = component {
   val dispatch = useDispatch<Msg>()
 
-  Div(
+  div(
     css = listOf(
       flex(1, 1, 100.pct),
       overflow.hidden(),
@@ -53,7 +53,7 @@ private fun typesCatalogue(model: Model) = component {
       flexDirection.column()
     ),
     children = listOf(
-      Div(
+      div(
         css = listOf(
           padding(4.px)
         ),
@@ -96,14 +96,14 @@ private fun categories(model: Model) = component {
       params = persistentMapOf(),
       offset = WorldPoint(0.0, 0.0)
     )
-    val tree = Div(
+    val tree = div(
       id = "types-catalogue-drag-image",
       css = listOf(
         position.fixed(),
         left(-10000.px),
         top(-10000.px)
       ),
-      child = Div(
+      child = div(
         style = listOf(
           transformOrigin(0.px, 0.px),
           transform.scale(model.transform.scale),
@@ -126,7 +126,7 @@ private fun categories(model: Model) = component {
   val contents = categories.map { category ->
     TreeNode(
       id = category.key,
-      label = Text(category.key),
+      label = text(category.key),
       nodeData = null,
       isExpanded = true,
       childNodes = category.value.map { type ->
@@ -135,7 +135,7 @@ private fun categories(model: Model) = component {
           css = listOf(
             cursor.pointer()
           ),
-          label = Div(
+          label = div(
             draggable = true,
             text = type.id.name,
             onDragStart = { onDrag(type.id, it) }
@@ -156,7 +156,7 @@ private fun nodeEditor(model: Model, nodeId: NodeId) = component {
   val node = model.nodes[nodeId] ?: UNKNOWN_NODE
   val type = model.types[node.type] ?: UNKNOWN_TYPE
 
-  Div(
+  div(
     css = listOf(
       flex(1, 1, 100.pct),
       overflow.auto()
@@ -168,13 +168,13 @@ private fun nodeEditor(model: Model, nodeId: NodeId) = component {
 private fun paramEditor(node: Node, param: ParamType) = component {
   val value = node.params[param.id]
 
-  Div(
+  div(
     css = listOf(
       display.flex(),
       alignItems.center()
     ),
     children = listOf(
-      Div(text = param.id.value),
+      div(text = param.id.value),
       when (param.type) {
         DataType.Scalar ->
           scalarEditor(node.id, param.id, value as? DataValue.Scalar)
@@ -189,7 +189,7 @@ private fun scalarEditor(node: NodeId, param: ParamId, value: DataValue.Scalar?)
   val dispatch = useDispatch<Msg>()
   val float = value?.value ?: 0.0f
 
-  Input(
+  input(
     css = listOf(
       flex(1, 1, 100.pct),
       marginLeft(16.px)
@@ -222,14 +222,14 @@ private fun colorEditor(node: NodeId, param: ParamId, value: DataValue.Color?) =
     Component("Alpha", color.a) { v -> color.copy(a = v) }
   )
 
-  Div(
+  div(
     css = listOf(
       display.flex(),
       flex(1, 1, 100.pct),
       marginLeft(16.px)
     ),
     children = components.map { (name, v, set) ->
-      Input(
+      input(
         css = listOf(
           flex(1, 1, 100.pct),
           width(100.pct)

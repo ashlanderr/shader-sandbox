@@ -2,8 +2,8 @@ package app
 
 import io.akryl.component
 import io.akryl.dom.css.properties.*
-import io.akryl.dom.html.Div
 import io.akryl.dom.html.For
+import io.akryl.dom.html.div
 import io.akryl.memo
 import io.akryl.redux.useDispatch
 
@@ -12,7 +12,7 @@ private fun input(joints: Joints, node: NodeId, input: InputId) = component {
   val connected = Pair(node, input) in joints
   val color = Color.white
 
-  Div(
+  div(
     css = listOf(
       display.flex(),
       alignItems.center(),
@@ -20,7 +20,7 @@ private fun input(joints: Joints, node: NodeId, input: InputId) = component {
       cursor.pointer()
     ),
     children = listOf(
-      Div(
+      div(
         id = "node-$node-input-$input",
         css = listOf(
           width(8.px),
@@ -32,7 +32,7 @@ private fun input(joints: Joints, node: NodeId, input: InputId) = component {
           marginRight(4.px)
         )
       ),
-      Div(text = input.value)
+      div(text = input.value)
     ),
     onMouseUp = { dispatch(Msg.StopOnInput(node, input)) }
   )
@@ -51,7 +51,7 @@ private fun output(joints: Joints, node: NodeId, output: OutputId) = memo {
     OutputId.Blue -> Color.blue
   }
 
-  Div(
+  div(
     css = listOf(
       display.flex(),
       alignItems.center(),
@@ -68,7 +68,7 @@ private fun output(joints: Joints, node: NodeId, output: OutputId) = memo {
       }
     },
     children = listOf(
-      Div(
+      div(
         id = "node-$node-output-$output",
         css = listOf(
           width(8.px),
@@ -86,7 +86,7 @@ private fun output(joints: Joints, node: NodeId, output: OutputId) = memo {
 fun node(types: EntityMap<NodeTypeId, NodeType>, selection: Selection?, joints: Joints, node: Node) = memo {
   val type = types[node.type] ?: UNKNOWN_TYPE
 
-  Div(
+  div(
     css = listOf(
       display.flex(),
       flexDirection.column(),
@@ -104,7 +104,7 @@ private fun nodeHeader(selection: Selection?, node: NodeId, type: NodeType) = me
   val dispatch = useDispatch<Msg>()
   val selected = selection is Selection.Node && selection.node == node
 
-  Div(
+  div(
     css = listOf(
       padding(vertical = 8.px, horizontal = 4.px),
       textAlign.center(),
@@ -129,7 +129,7 @@ private fun nodeBody(joints: Joints, type: NodeType, node: Node) = memo {
   else
     null
 
-  Div(
+  div(
     css = listOf(
       display.flex(),
       backgroundColor(0x505050),
@@ -137,7 +137,7 @@ private fun nodeBody(joints: Joints, type: NodeType, node: Node) = memo {
       justifyContent.spaceBetween()
     ),
     children = listOf(
-      Div(
+      div(
         css = listOf(
           display.flex(),
           flex(1, 1, 100.pct),
@@ -151,7 +151,7 @@ private fun nodeBody(joints: Joints, type: NodeType, node: Node) = memo {
           smallShaderPreview(node.id)
         )
       ),
-      Div(
+      div(
         css = listOf(
           display.flex(),
           flexDirection.column(),

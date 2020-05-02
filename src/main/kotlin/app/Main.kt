@@ -6,7 +6,7 @@ import io.akryl.dom.css.properties.display
 import io.akryl.dom.css.properties.height
 import io.akryl.dom.css.properties.pct
 import io.akryl.dom.css.properties.width
-import io.akryl.dom.html.Div
+import io.akryl.dom.html.div
 import io.akryl.redux.provider
 import io.akryl.useEffect
 import io.akryl.useRef
@@ -26,7 +26,7 @@ fun app() = component {
 
   store.provider(
     children = listOf(
-      Div(
+      div(
         ref = ref,
         css = listOf(
           width(100.pct),
